@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Topcar By LCP Group — Centro de operaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --brand-black: #000000;
+  --brand-white: #FFFFFF;
+  --cream: #E8DFD0;
+  --cream-deep: #D4C4AE;
+  --cream-wash: #F3ECE2;
+  --paper: #E8DFD0;
+  --ink: #14110E;
+  --ink-soft: #2A2622;
+  --muted: #6E655A;
+  --line: #C9BDAA;
+  --line-soft: rgba(42, 38, 34, 0.14);
+  --rail: #0A0908;
+  --rail-elev: #12100E;
+  --chrome: #8A8074;
+  --metal: #8A8074;
+  --metal-stamp: #5C564E;
+  --ok: #5A7A5A;
+  --warn: #A67C2E;
+  --risk: #9A3E3E;
+  --row-h: 56px;
+  --drawer-w: min(440px, 96vw);
+  --font: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --display: "Barlow Condensed", "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --radius: 0;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+}
+button, input, select { font: inherit; color: inherit; border-radius: var(--radius); }
+button { cursor: pointer; }
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
+  background:
+    radial-gradient(ellipse 900px 420px at 12% -8%, rgba(255,252,246,.55), transparent 58%),
+    radial-gradient(ellipse 700px 360px at 92% 4%, rgba(212,196,174,.35), transparent 52%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 47px,
+      rgba(42,38,34,.025) 47px,
+      rgba(42,38,34,.025) 48px
+    ),
+    var(--paper);
+}
+
+/* —— Black logo rail —— */
+.topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+  padding: 14px 20px;
+  background: var(--rail);
+  border-bottom: 1px solid #2A2622;
+  color: var(--cream);
+}
+.brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.brand-mark {
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px 14px;
+  background: #000;
+  border: 1px solid #3A342C;
+  border-radius: 0;
+}
+.brand img { height: 36px; width: auto; display: block; }
+.brand-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand-meta strong {
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: .22em;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+.brand-meta span {
+  font-size: 10px;
+  color: var(--metal);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.search-wrap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.search-wrap input, .search-wrap select {
+  background: var(--rail-elev);
+  border: 1px solid #3A342C;
+  border-radius: 0;
+  padding: 9px 12px;
+  min-width: 0;
+  color: var(--cream);
+}
+.search-wrap input::placeholder { color: var(--metal); }
+.search-wrap input { flex: 1 1 220px; }
+.search-wrap select { flex: 0 1 140px; }
+.search-wrap input:focus, .search-wrap select:focus {
+  outline: 1px solid var(--cream-deep);
+}
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.chip {
+  border: 1px solid #3A342C;
+  background: var(--rail-elev);
+  padding: 8px 12px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border-radius: 0;
+  color: var(--cream);
+}
+.chip.active {
+  background: var(--cream);
+  color: var(--brand-black);
+  border-color: var(--cream);
+  font-weight: 600;
+}
+.capacity {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--cream);
+  border: 1px solid #3A342C;
+  padding: 8px 10px;
+  border-radius: 0;
+  white-space: nowrap;
+  background: #100E0C;
+}
+
+/* —— Permanent SLA ribbon —— */
+.sla-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: stretch;
+  background: var(--rail-elev);
+  border-bottom: 1px solid #2A2622;
+  color: var(--cream);
+}
+.sla-ribbon .sla-label {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  color: var(--metal);
+  border-right: 1px solid #2A2622;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.sla-items {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.sla-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 18px;
+  border-right: 1px solid #2A2622;
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+.sla-item strong {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--cream);
+}
+.sla-item span {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--cream-deep);
+  letter-spacing: .04em;
+}
+
+/* —— 4 workshop instruments —— */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+.kpi {
+  background: rgba(255,252,246,.35);
+  padding: 16px 18px 14px;
+  min-height: 88px;
+  border-right: 1px solid var(--line-soft);
+  border-top: 1px solid rgba(255,255,255,.35);
+}
+.kpi:last-child { border-right: 0; }
+.kpi .lbl {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi .val {
+  margin-top: 10px;
+  font-size: 32px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: -.02em;
+  color: var(--ink);
+  line-height: 1;
+}
+.kpi .sub { margin-top: 6px; font-size: 11px; color: var(--muted); }
+.kpi.warn .val { color: var(--warn); }
+.kpi.risk .val { color: var(--risk); }
+.kpi.ok .val { color: var(--ok); }
+
+/* —— Body —— */
+.body { display: grid; grid-template-columns: 1fr; min-height: 0; }
+.body.with-drawer { grid-template-columns: 1fr var(--drawer-w); }
+.main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.nav {
+  display: flex; gap: 0; padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  background: rgba(243,236,226,.55);
+}
+.nav button {
+  border: 0; background: transparent; color: var(--muted);
+  padding: 12px 16px;
+  border-bottom: 2px solid transparent;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nav button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--brand-black);
+}
+.panel { display: none; padding: 18px 16px; min-height: 0; }
+.panel.active { display: block; }
+.panel-head {
+  display: flex; justify-content: space-between; align-items: end; gap: 12px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.panel-head h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 720px; }
+.panel-head .chip {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Dense table — product identity rows */
+.table-scroll {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  max-height: calc(100vh - 360px);
+  background: rgba(255,252,246,.5);
+}
+table.dense { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.dense th {
+  position: sticky; top: 0; z-index: 2;
+  text-align: left;
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+  background: #F3ECE2;
+}
+table.dense td {
+  padding: 8px 12px;
+  height: var(--row-h);
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+table.dense tbody tr { cursor: pointer; }
+table.dense tbody tr:hover { background: rgba(212,196,174,.28); }
+table.dense tbody tr.selected {
+  background: rgba(212,196,174,.42);
+  outline: 1px solid var(--metal);
+  outline-offset: -1px;
+}
+.veh-primary {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.veh-primary .color {
+  color: var(--metal-stamp);
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+.veh-sec {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  opacity: .75;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font-size: 11px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-family: var(--display);
+}
+.badge.ok { color: var(--ok); border-color: #8AA08A; }
+.badge.warn { color: var(--warn); border-color: #C4A35A; }
+.badge.risk { color: var(--risk); border-color: #B85C5C; }
+.countdown {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: .04em;
+  font-weight: 500;
+}
+.countdown.risk { color: var(--risk); }
+.countdown.warn { color: var(--warn); }
+.progress {
+  width: 72px; height: 3px;
+  background: rgba(42,38,34,.12);
+  border-radius: 0;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.progress > i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--metal), var(--ink));
+}
+.svc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.svc-tags span {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border: 1px solid var(--metal-stamp);
+  color: var(--metal-stamp);
+  border-radius: 0;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.25), transparent 55%),
+    rgba(138,128,116,.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+}
+
+/* Bay wall pipeline */
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(210px, 1fr));
+  gap: 1px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.col {
+  background: rgba(243,236,226,.72);
+  border-radius: 0;
+  min-height: 360px;
+}
+.col-h {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(255,252,246,.6);
+}
+.col-h em {
+  font-style: normal;
+  color: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.cards {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 400px);
+  overflow: auto;
+}
+.bay {
+  background: rgba(255,252,246,.7);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--metal);
+  padding: 14px 12px 12px;
+  border-radius: 0;
+  cursor: pointer;
+}
+.bay:hover { background: #FFFCFA; border-color: var(--metal); }
+.bay.risk { border-left-color: var(--risk); }
+.bay.warn { border-left-color: var(--warn); }
+.bay.ok { border-left-color: var(--ok); }
+.bay .t {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1.05;
+}
+.bay .c {
+  color: var(--metal-stamp);
+  font-family: var(--display);
+  font-size: 13px;
+  margin-top: 4px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.bay .clock {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ink);
+}
+.bay .clock.risk { color: var(--risk); }
+.bay .clock.warn { color: var(--warn); }
+.bay .meta {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: end;
+  font-size: 11px;
+  color: var(--muted);
+}
+.bay .plate {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  opacity: .55;
+}
+.bay .svc-tags { margin-top: 8px; }
+
+/* Ops / Mgmt / Ready */
+.grid-2 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
+.box {
+  background: rgba(255,252,246,.55);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 16px;
+}
+.box h2 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.box p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.guide { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.guide div {
+  border: 1px solid var(--line);
+  padding: 10px;
+  background: rgba(243,236,226,.8);
+  border-radius: 0;
+}
+.guide strong {
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.guide span { font-family: var(--mono); font-size: 16px; color: var(--ink); }
+.bars { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.bar-row { display: grid; grid-template-columns: 90px 1fr 40px; gap: 8px; align-items: center; font-size: 12px; }
+.bar { height: 6px; background: rgba(42,38,34,.1); border-radius: 0; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--metal), var(--ink)); }
+
+/* Drawer — action then clock (Oscar) */
+.drawer {
+  border-left: 1px solid var(--line);
+  background: #F7F1E8;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+}
+.body.with-drawer .drawer { display: flex; }
+.drawer-h {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  background: var(--rail);
+  color: var(--cream);
+}
+.drawer-h h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--cream);
+  line-height: 1.1;
+}
+.drawer-h .color {
+  display: block;
+  color: var(--cream-deep);
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-family: var(--display);
+}
+.drawer-h .plate {
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--metal);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  opacity: .7;
+}
+.drawer-b { padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+.field { display: grid; gap: 4px; }
+.field label {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field .v { font-size: 14px; }
+.timer-box {
+  border: 1px solid var(--line);
+  background: rgba(255,252,246,.8);
+  padding: 16px;
+  border-radius: 0;
+}
+.timer-box .lbl {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.timer-vals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.timer-vals div {
+  text-align: center;
+  border: 1px solid var(--line);
+  padding: 12px 8px;
+  background: #FFFCFA;
+}
+.timer-vals b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: -.02em;
+}
+.timer-vals span {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 12px 14px;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-radius: 0;
+  font-weight: 600;
+}
+.btn.primary {
+  background: var(--brand-black);
+  color: var(--cream);
+  border-color: var(--brand-black);
+  flex: 1;
+}
+.close-x {
+  border: 0;
+  background: transparent;
+  color: var(--metal);
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px;
+}
+
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alert {
+  border-left: 3px solid var(--warn);
+  background: rgba(255,252,246,.7);
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.alert.risk { border-left-color: var(--risk); }
+
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .guide { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .board { grid-template-columns: repeat(5, minmax(190px, 1fr)); }
+  .sla-item { min-width: 100px; }
+}
+@media (max-width: 720px) {
+  .topbar { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .body.with-drawer { grid-template-columns: 1fr; }
+  .drawer {
+    position: fixed; inset: 0 0 0 auto;
+    width: var(--drawer-w); z-index: 20;
+    box-shadow: -12px 0 40px rgba(0,0,0,.25);
+  }
+  .hide-mobile { display: none !important; }
+  .bay .t { font-size: 18px; }
+  .timer-vals b { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <img src="assets/topcar-logo.png" alt="Topcar By LCP Group" width="180" height="38"/>
+      </div>
+      <div class="brand-meta">
+        <strong>Topcar By LCP Group</strong>
+        <span>Taller · protección &amp; estética</span>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <input id="q" type="search" placeholder="Buscar marca, modelo, cliente, placa, técnico…" aria-label="Buscar"/>
+      <select id="f-stage" aria-label="Filtrar etapa"><option value="">Todas las etapas</option></select>
+      <select id="f-risk" aria-label="Filtrar riesgo">
+        <option value="">Todo riesgo</option>
+        <option value="ok">En tiempo</option>
+        <option value="warn">En riesgo</option>
+        <option value="risk">Atrasado</option>
+      </select>
+      <select id="f-svc" aria-label="Filtrar servicio">
+        <option value="">Todos los servicios</option>
+        <option>PPF</option><option>Cerámica</option><option>Laminado</option><option>Lavado</option><option>Combinado</option>
+      </select>
+    </div>
+    <div class="top-actions">
+      <div class="capacity" id="capacity">Capacidad —</div>
+      <button type="button" class="chip" id="view-table" data-view="table">Lista</button>
+      <button type="button" class="chip" id="view-board" data-view="board">Pipeline</button>
+    </div>
+  </header>
+
+  <section class="sla-ribbon" id="sla-ribbon" aria-label="Tiempos de servicio">
+    <div class="sla-label">SLA taller</div>
+    <div class="sla-items">
+      <div class="sla-item"><strong>PPF</strong><span>3–4d</span></div>
+      <div class="sla-item"><strong>Cerámica</strong><span>2d</span></div>
+      <div class="sla-item"><strong>Laminado</strong><span>3h</span></div>
+      <div class="sla-item"><strong>Lavado</strong><span>2h</span></div>
+      <div class="sla-item"><strong>Combinado</strong><span>5–6d</span></div>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Instrumentos del taller"></section>
+
+  <div class="body" id="body">
+    <main class="main">
+      <nav class="nav" role="tablist">
+        <button type="button" role="tab" id="tab-ops" aria-selected="true" data-tab="ops">Operaciones</button>
+        <button type="button" role="tab" id="tab-mgmt" aria-selected="false" data-tab="mgmt">Gerencia</button>
+        <button type="button" role="tab" id="tab-ready" aria-selected="false" data-tab="ready">Listos</button>
+      </nav>
+
+      <section class="panel active" id="panel-ops" role="tabpanel">
+        <div class="panel-head">
+          <div>
+            <h1>Operaciones del taller</h1>
+            <p>Muro de bahías: identidad del vehículo primero, cronómetro a promesa, placa secundaria.</p>
+          </div>
+          <div class="chip" id="live-count">0 activos</div>
+        </div>
+        <div id="ops-table-wrap">
+          <div class="table-scroll">
+            <table class="dense" id="veh-table">
+              <thead>
+                <tr>
+                  <th>Vehículo</th>
+                  <th>Cliente</th>
+                  <th>Servicios</th>
+                  <th>Etapa</th>
+                  <th>Asignado</th>
+                  <th>Promesa</th>
+                  <th>Cronómetro</th>
+                  <th>Riesgo</th>
+                  <th>Avance</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="ops-board-wrap" hidden>
+          <div class="board" id="board"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-mgmt" role="tabpanel" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Gerencia</h1>
+            <p>Capacidad del taller, mezcla de servicios y alertas operativas.</p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="box">
+            <h2>Mezcla de servicios (activos)</h2>
+            <div class="bars" id="mix-bars"></div>
+            <div class="guide" aria-label="Tiempos de servicio">
+              <div><strong>PPF</strong><span>3–4d</span></div>
+              <div><strong>Cerámica</strong><span>2d</span></div>
+              <div><strong>Laminado</strong><span>3h</span></div>
+              <div><strong>Lavado</strong><span>2h</span></div>
+              <div><strong>Combinado</strong><span>5–6d</span></div>
+            </div>
+            <p style="margin-top:14px;color:var(--muted);font-size:12px;line-height:1.5">
+              Etapas del servicio (flujo completo): Lavado · Descontaminación de pintura ·
+              Corrección de pintura · Aplicación de Modesta Coatings · Instalación de PPF ·
+              Terminación y detallado · Laminado de cristales.
+            </p>
+          </div>
+          <div class="box">
+            <h2>Alertas y bloqueos</h2>
+            <div class="alerts" id="alerts"></div>
+            <p style="margin-top:12px">Tiempo medio de cierre (últimos 14 días): <strong id="avg-time">—</strong></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-ready" role="tabpanel" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Listos / entregas</h1>
+            <p>Vehículos en control final o listos para entrega al cliente.</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="dense" id="ready-table">
+            <thead>
+              <tr>
+                <th>Vehículo</th><th>Cliente</th><th>Servicios</th><th>Estado</th><th>Cronómetro</th><th>Asignado</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <aside class="drawer" id="drawer" aria-label="Detalle del vehículo">
+      <div class="drawer-h">
+        <div>
+          <h2 id="d-title">—</h2>
+          <span class="color" id="d-color"></span>
+          <div class="plate" id="d-plate">Placa —</div>
+        </div>
+        <button type="button" class="close-x" id="d-close" aria-label="Cerrar">×</button>
+      </div>
+      <div class="drawer-b">
+        <div class="field"><label>Cliente</label><div class="v" id="d-client"></div></div>
+        <div class="field"><label>Servicios</label><div class="v" id="d-services"></div></div>
+        <div class="field"><label>Etapa actual</label><div class="v" id="d-stage"></div></div>
+        <div class="field"><label>Técnico / equipo</label><div class="v" id="d-tech"></div></div>
+        <div class="field"><label>Promesa de entrega</label><div class="v" id="d-due"></div></div>
+        <div class="field"><label>Riesgo</label><div class="v" id="d-risk"></div></div>
+        <div class="field"><label>Avance</label><div class="v" id="d-progress"></div></div>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="d-advance">Avanzar etapa</button>
+          <button type="button" class="btn" id="d-assign">Reasignar</button>
+        </div>
+        <div class="timer-box">
+          <div class="lbl">Cronómetro a entrega acordada</div>
+          <div class="timer-vals" id="d-timer"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+<script>
+const STAGES = ["Recepción", "Preparación", "En proceso", "Control de calidad", "Listo"];
+const TECHS = ["Luis M.", "Ana R.", "Carlos P.", "María G.", "Equipo A", "Equipo B", "Diego S.", "Paula V."];
+const BRANDS = [
+  ["Toyota","Corolla","Blanco perlado"],["Honda","CR-V","Negro"],["Hyundai","Tucson","Gris"],
+  ["Kia","Sportage","Rojo"],["Mazda","CX-5","Azul"],["Nissan","Frontier","Plata"],
+  ["Ford","Escape","Blanco"],["Chevrolet","Tahoe","Negro"],["BMW","X3","Gris mineral"],
+  ["Mercedes-Benz","GLC","Blanco polar"],["Audi","Q5","Negro mito"],["Jeep","Grand Cherokee","Verde"],
+  ["Volkswagen","Tiguan","Gris"],["Lexus","NX","Champagne"],["Porsche","Macan","Negro"],
+  ["Tesla","Model Y","Blanco"],["Ram","1500","Plata"],["Subaru","Outback","Verde"],
+  ["Volvo","XC60","Azul"],["Genesis","GV70","Gris"],["Acura","MDX","Negro"],
+  ["Infiniti","QX60","Blanco"],["GMC","Yukon","Negro"],["Cadillac","XT5","Plata"]
+];
+const CLIENTS = ["Grupo Norte","Inversiones Delta","Sra. Cabrera","Sr. Méndez","Flota Caribe","AutoRent RD","Sr. Collado","Sra. Peña","Corp. Atlas","Sr. Vargas","Sra. Díaz","Logística Sur","Sr. Ortega","Sra. Beltré","Fleet Plus"];
+const SVC_SETS = [
+  ["PPF"],["Cerámica"],["Laminado"],["Lavado"],
+  ["PPF","Cerámica"],["PPF","Laminado"],["Cerámica","Laminado"],
+  ["Combinado"],["Lavado","Laminado"],["PPF","Lavado"]
+];
+
+function hash(n){ n = ((n>>>0)*2654435761)>>>0; return n; }
+function pick(arr, n){ return arr[hash(n) % arr.length]; }
+
+function buildVehicles(count){
+  const now = Date.now();
+  const list = [];
+  for(let i=0;i<count;i++){
+    const b = BRANDS[i % BRANDS.length];
+    const services = pick(SVC_SETS, i+3);
+    const stageIdx = hash(i+11) % STAGES.length;
+    const hoursOffset = ((hash(i+99)%120) - 36);
+    const due = new Date(now + hoursOffset*3600*1000);
+    const progress = Math.min(95, Math.max(8, stageIdx*18 + (hash(i)%15)));
+    const ms = due - now;
+    let risk = "ok";
+    if(ms < 0) risk = "risk";
+    else if(ms < 8*3600*1000) risk = "warn";
+    if(stageIdx >= 3 && ms > 0) risk = risk === "risk" ? "warn" : risk;
+    const plate = `${String.fromCharCode(65+(i%26))}${String.fromCharCode(65+((i*3)%26))}${100000+(hash(i)%90000)}`.slice(0,7);
+    list.push({
+      id: `V-${1000+i}`,
+      brand: b[0], model: b[1], color: b[2],
+      client: pick(CLIENTS, i+7),
+      plate,
+      services,
+      stage: STAGES[stageIdx],
+      stageIdx,
+      tech: pick(TECHS, i+5),
+      due,
+      risk,
+      progress,
+      blocked: (hash(i)%17===0)
+    });
+  }
+  return list;
+}
+
+let vehicles = buildVehicles(24);
+let selectedId = null;
+let viewMode = "table";
+
+function fmtDue(d){
+  return d.toLocaleString("es-DO", { weekday:"short", day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+}
+function countdownParts(due){
+  let ms = due - Date.now();
+  const late = ms < 0;
+  ms = Math.abs(ms);
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const mins = Math.floor((ms % 3600000) / 60000);
+  return { days, hours, mins, late };
+}
+function countdownText(due){
+  const p = countdownParts(due);
+  const sign = p.late ? "−" : "";
+  return `${sign}${p.days}d ${p.hours}h ${p.mins}m`;
+}
+function riskLabel(r){ return r==="risk"?"Atrasado": r==="warn"?"En riesgo":"En tiempo"; }
+
+function filtered(){
+  const q = (document.getElementById("q").value || "").trim().toLowerCase();
+  const st = document.getElementById("f-stage").value;
+  const rk = document.getElementById("f-risk").value;
+  const sv = document.getElementById("f-svc").value;
+  return vehicles.filter(v => {
+    if(st && v.stage !== st) return false;
+    if(rk && v.risk !== rk) return false;
+    if(sv && !v.services.includes(sv) && !(sv==="Combinado" && v.services.includes("Combinado"))) return false;
+    if(!q) return true;
+    const blob = [v.brand,v.model,v.color,v.client,v.plate,v.tech,v.services.join(" "),v.id].join(" ").toLowerCase();
+    return blob.includes(q);
+  });
+}
+
+function renderKpis(){
+  const dueToday = vehicles.filter(v => {
+    const t = new Date(); const d = v.due;
+    return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate();
+  });
+  const overdue = vehicles.filter(v => v.risk === "risk");
+  const capacityUsed = Math.min(100, Math.round((vehicles.length / 30) * 100));
+  const el = document.getElementById("kpis");
+  const items = [
+    ["Activos", vehicles.length, "en taller hoy", ""],
+    ["Atrasados", overdue.length, "requieren acción", overdue.length?"risk":"ok"],
+    ["Vencen hoy", dueToday.length, "promesa calendario", dueToday.length>6?"warn":""],
+    ["Capacidad", `${capacityUsed}%`, `${vehicles.length}/30 bahías`, capacityUsed>85?"warn":""],
+  ];
+  el.innerHTML = items.map(([lbl,val,sub,cls]) =>
+    `<div class="kpi ${cls}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`
+  ).join("");
+  document.getElementById("capacity").textContent = `Capacidad ${vehicles.length}/30`;
+  document.getElementById("live-count").textContent = `${filtered().length} visibles · ${vehicles.length} activos`;
+  document.getElementById("avg-time").textContent = `38 horas`;
+}
+
+function renderTable(){
+  const tb = document.querySelector("#veh-table tbody");
+  const rows = filtered();
+  tb.innerHTML = rows.map(v => {
+    const cd = countdownText(v.due);
+    return `<tr data-id="${v.id}" class="${selectedId===v.id?"selected":""}">
+      <td><div class="veh-primary">${v.brand} ${v.model} <span class="color">· ${v.color}</span></div>
+          <div class="veh-sec">Placa ${v.plate} · ${v.id}</div></td>
+      <td>${v.client}</td>
+      <td><div class="svc-tags">${v.services.map(s=>`<span>${s}</span>`).join("")}</div></td>
+      <td>${v.stage}</td>
+      <td>${v.tech}</td>
+      <td>${fmtDue(v.due)}</td>
+      <td><span class="countdown ${v.risk}">${cd}</span></td>
+      <td><span class="badge ${v.risk}">${riskLabel(v.risk)}</span></td>
+      <td><span class="progress"><i style="width:${v.progress}%"></i></span>${v.progress}%</td>
+    </tr>`;
+  }).join("");
+  tb.querySelectorAll("tr").forEach(tr => tr.addEventListener("click", () => openDrawer(tr.dataset.id)));
+}
+
+function renderBoard(){
+  const board = document.getElementById("board");
+  const rows = filtered();
+  board.innerHTML = STAGES.map(stage => {
+    const cards = rows.filter(v => v.stage === stage);
+    return `<div class="col"><div class="col-h">${stage} <em>${cards.length}</em></div>
+      <div class="cards">${cards.map(v => `
+        <div class="bay ${v.risk}" data-id="${v.id}">
+          <div class="t">${v.brand} ${v.model}</div>
+          <div class="c">${v.color}</div>
+          <div class="clock ${v.risk}">${countdownText(v.due)}</div>
+          <div class="svc-tags">${v.services.map(s=>`<span>${s}</span>`).join("")}</div>
+          <div class="meta"><span>${v.tech}</span><span class="plate">${v.plate}</span></div>
+        </div>`).join("") || `<div style="color:var(--muted);font-size:12px;padding:8px">Sin unidades</div>`}
+      </div></div>`;
+  }).join("");
+  board.querySelectorAll(".bay").forEach(c => c.addEventListener("click", () => openDrawer(c.dataset.id)));
+}
+
+function renderReady(){
+  const tb = document.querySelector("#ready-table tbody");
+  const rows = filtered().filter(v => v.stage === "Listo" || v.stage === "Control de calidad");
+  tb.innerHTML = rows.map(v => `<tr data-id="${v.id}">
+    <td><div class="veh-primary">${v.brand} ${v.model} <span class="color">· ${v.color}</span></div>
+        <div class="veh-sec">Placa ${v.plate}</div></td>
+    <td>${v.client}</td>
+    <td><div class="svc-tags">${v.services.map(s=>`<span>${s}</span>`).join("")}</div></td>
+    <td>${v.stage}</td>
+    <td><span class="countdown ${v.risk}">${countdownText(v.due)}</span></td>
+    <td>${v.tech}</td>
+  </tr>`).join("") || `<tr><td colspan="6" style="color:var(--muted)">No hay unidades en Listos/QC con el filtro actual.</td></tr>`;
+  tb.querySelectorAll("tr[data-id]").forEach(tr => tr.addEventListener("click", () => openDrawer(tr.dataset.id)));
+}
+
+function renderMgmt(){
+  const mix = {};
+  vehicles.forEach(v => v.services.forEach(s => mix[s]=(mix[s]||0)+1));
+  const max = Math.max(...Object.values(mix), 1);
+  document.getElementById("mix-bars").innerHTML = Object.entries(mix).sort((a,b)=>b[1]-a[1]).map(([k,n]) =>
+    `<div class="bar-row"><span>${k}</span><div class="bar"><i style="width:${Math.round(n/max*100)}%"></i></div><span>${n}</span></div>`
+  ).join("");
+  const alerts = vehicles.filter(v => v.risk!=="ok" || v.blocked).slice(0,8).map(v =>
+    `<div class="alert ${v.risk==="risk"||v.blocked?"risk":""}">${v.brand} ${v.model} · ${v.blocked?"Bloqueado":riskLabel(v.risk)} · ${countdownText(v.due)} · ${v.tech}</div>`
+  );
+  document.getElementById("alerts").innerHTML = alerts.join("") || `<div class="alert">Sin alertas críticas</div>`;
+}
+
+function openDrawer(id){
+  const v = vehicles.find(x => x.id === id);
+  if(!v) return;
+  selectedId = id;
+  document.getElementById("body").classList.add("with-drawer");
+  document.getElementById("d-title").textContent = `${v.brand} ${v.model}`;
+  document.getElementById("d-color").textContent = v.color;
+  document.getElementById("d-plate").textContent = `Placa ${v.plate}`;
+  document.getElementById("d-client").textContent = v.client;
+  document.getElementById("d-services").innerHTML = `<div class="svc-tags">${v.services.map(s=>`<span>${s}</span>`).join("")}</div>`;
+  document.getElementById("d-stage").textContent = v.stage;
+  document.getElementById("d-tech").textContent = v.tech;
+  document.getElementById("d-due").textContent = fmtDue(v.due);
+  document.getElementById("d-risk").innerHTML = `<span class="badge ${v.risk}">${riskLabel(v.risk)}</span>`;
+  document.getElementById("d-progress").innerHTML = `<span class="progress"><i style="width:${v.progress}%"></i></span> ${v.progress}%`;
+  const p = countdownParts(v.due);
+  document.getElementById("d-timer").innerHTML = `
+    <div><b>${p.late?"−":""}${p.days}</b><span>Días</span></div>
+    <div><b>${p.hours}</b><span>Horas</span></div>
+    <div><b>${p.mins}</b><span>Min</span></div>`;
+  if(viewMode==="table") renderTable();
+  else renderBoard();
+}
+
+function closeDrawer(){
+  selectedId = null;
+  document.getElementById("body").classList.remove("with-drawer");
+  if(viewMode==="table") renderTable();
+  else renderBoard();
+}
+
+function setTab(name){
+  document.querySelectorAll(".nav button").forEach(b => {
+    const on = b.dataset.tab === name;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll(".panel").forEach(p => {
+    const on = p.id === `panel-${name}`;
+    p.classList.toggle("active", on);
+    p.hidden = !on;
+  });
+  refresh();
+}
+
+function setView(mode){
+  viewMode = mode;
+  document.getElementById("view-table").classList.toggle("active", mode==="table");
+  document.getElementById("view-board").classList.toggle("active", mode==="board");
+  document.getElementById("ops-table-wrap").hidden = mode!=="table";
+  document.getElementById("ops-board-wrap").hidden = mode!=="board";
+  refresh();
+}
+
+function refresh(){
+  renderKpis();
+  if(document.getElementById("panel-ops").classList.contains("active")){
+    if(viewMode==="table") renderTable(); else renderBoard();
+  }
+  if(document.getElementById("panel-mgmt").classList.contains("active")) renderMgmt();
+  if(document.getElementById("panel-ready").classList.contains("active")) renderReady();
+}
+
+const stageSel = document.getElementById("f-stage");
+STAGES.forEach(s => {
+  const o = document.createElement("option"); o.value=s; o.textContent=s; stageSel.appendChild(o);
+});
+["q","f-stage","f-risk","f-svc"].forEach(id => document.getElementById(id).addEventListener("input", refresh));
+document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+document.getElementById("view-table").addEventListener("click", () => setView("table"));
+document.getElementById("view-board").addEventListener("click", () => setView("board"));
+document.getElementById("d-close").addEventListener("click", closeDrawer);
+document.getElementById("d-advance").addEventListener("click", () => {
+  const v = vehicles.find(x => x.id === selectedId);
+  if(!v) return;
+  v.stageIdx = Math.min(STAGES.length-1, v.stageIdx+1);
+  v.stage = STAGES[v.stageIdx];
+  v.progress = Math.min(100, v.progress+18);
+  openDrawer(v.id); refresh();
+});
+document.getElementById("d-assign").addEventListener("click", () => {
+  const v = vehicles.find(x => x.id === selectedId);
+  if(!v) return;
+  const i = TECHS.indexOf(v.tech);
+  v.tech = TECHS[(i+1)%TECHS.length];
+  openDrawer(v.id); refresh();
+});
+
+setView("table");
+refresh();
+setInterval(() => { if(selectedId) openDrawer(selectedId); else refresh(); }, 60000);
+</script>
+</body>
+</html>
