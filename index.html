@@ -362,6 +362,18 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .chg{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;
   background:var(--pause-bg);color:var(--pause);border:1px solid var(--pause);
   font-family:var(--disp);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+/* El motivo del retraso: sale solo cuando el carro va pasado, en la pantalla
+   del técnico. Si hay que buscarlo, no se escribe. */
+.whybox{border:1px solid var(--late);background:var(--late-bg);border-radius:10px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.why-h{font-family:var(--disp);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--late)}
+.why-quick{display:flex;flex-wrap:wrap;gap:6px}
+.why-quick button{border:1px solid var(--line);background:var(--card);color:var(--ink);
+  border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer}
+.why-quick button:hover{border-color:var(--ink)}
+.whybox textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
+.why-saved{font-size:12px;color:var(--ink-2)}
 #d-remove{color:var(--late);align-self:flex-start}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 .btn.alt:hover{background:var(--chip-bg)}
@@ -514,6 +526,9 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .ov-car em{display:block;font:400 10px/1.4 var(--ui);color:var(--muted);font-style:normal}
 .ov-st{color:var(--ink)}
 .ov-who{color:var(--ink);font-weight:600}
+.ov-why{grid-column:1/-1;font-size:12px;color:var(--ink-2);padding-top:2px}
+.ov-why em{font-style:normal;color:var(--muted);margin-left:8px;font-size:11px}
+.ov-why.falta{color:var(--muted);font-style:italic}
 .ov-n,.ov-d{font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
 .ov-n em,.ov-d em{display:block;font:400 10px/1.4 var(--ui);color:var(--muted);font-style:normal}
 .ov.bad .ov-d{color:var(--late)}
@@ -758,6 +773,13 @@ header{max-width:100%}
 
         <div class="sec">
           <div class="lbl">Subetapa · una o varias</div>
+          <div class="whybox" id="d-whybox" hidden>
+            <div class="why-h">Va pasado de tiempo. ¿Por qué?</div>
+            <div class="why-quick" id="d-why-quick"></div>
+            <textarea id="d-why" rows="2" placeholder="La pintura llegó tarde del pedido…"></textarea>
+            <button type="button" class="btn sm" id="d-why-save">Guardar el motivo</button>
+            <div class="why-saved" id="d-why-saved"></div>
+          </div>
           <div class="nowsubs" id="d-nowsubs"></div>
           <div class="nowsubs" id="d-subs-done"></div>
           <button type="button" class="btn sm" id="d-subs-open">Elegir subetapas</button>
@@ -975,6 +997,16 @@ const SKU_FAMILY = Object.fromEntries(
 const ALL_SUBS = [...new Set(
   Object.values(SHOP.services).flatMap(v => v.steps.map(s => s[0])))];
 const TECHS = ["Luis M.","Ana R.","Carlos P.","María G.","Equipo A","Equipo B","Diego S."];
+/* Los motivos que se repiten, para tocarlos en vez de escribirlos. Salen de lo
+   que Oscar y su gente dijeron en la reunión. */
+const MOTIVOS = [
+  "La pintura llegó tarde del pedido",
+  "Se cortó mal y hubo que volver a cortar",
+  "Falta material",
+  "El cliente cambió lo que pidió",
+  "El carro llegó peor de lo esperado",
+  "Esperando otra área",
+];
 
 /* ---------- helpers ---------- */
 const H = 3600000;
@@ -1052,7 +1084,10 @@ function alerts(){
         title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} ${atStage(c.stage)}`,
         detail:`Debía durar ${short(STAGE_TARGET[c.stage])} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`
           + (c.changes.some(x => x.stage === c.stage)
-             ? " · el cliente amplió el trabajo en esta etapa" : ""),
+             ? " · el cliente amplió el trabajo en esta etapa" : "")
+          + (delayReason(c, c.stage)
+             ? ` · ${delayReason(c, c.stage).text}`
+             : " · sin motivo anotado todavía"),
         weight: v.over
       });
     }
@@ -1113,13 +1148,15 @@ function overruns(){
     c.stageLog.forEach(l => {
       const v = variance(l.work, STAGE_TARGET[l.stage]);
       if (v && v.over > 0) out.push({ car:c, stage:l.stage, tech:l.tech, real:l.work,
-                                      target:STAGE_TARGET[l.stage], v, wait:l.wait });
+                                      target:STAGE_TARGET[l.stage], v, wait:l.wait,
+                                      why: delayReason(c, l.stage) });
     });
     // la etapa en curso también, si ya se pasó
     if (c.stage !== "Listo" && c.claimedBy) {
       const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
       if (v && v.over > 0) out.push({ car:c, stage:c.stage, tech:c.claimedBy, real:stageMs(c),
-                                      target:STAGE_TARGET[c.stage], v, wait:waitMs(c), live:true });
+                                      target:STAGE_TARGET[c.stage], v, wait:waitMs(c), live:true,
+                                      why: delayReason(c, c.stage) });
     }
   });
   return out.sort((a,b) => b.v.over - a.v.over);
@@ -1192,6 +1229,10 @@ function newCar(o){
     delivered:null,          // cuándo se lo llevó el cliente. Con esto sale de operaciones.
     deliveredBy:null,
     changes:[],              // cambios de servicio pedidos a mitad de trabajo
+    /* Por qué se pasó de tiempo, POR ETAPA. Va pegado al retraso y no suelto en
+       las notas: si el motivo no viaja con el número, Oscar ve "+137%" en un
+       sitio y la explicación en otro, y sigue sin saber a quién llamar. */
+    delayWhy:{},
     activeSubs:new Set(),    // subetapas activas ahora
     subMs:{},                // ms acumulado por subetapa (cerrado)
     subFrom:{},              // desde cuándo corre cada subetapa activa
@@ -1227,6 +1268,19 @@ function relojVivo(c){
    Todo lo que le pasó al carro, en orden, de una sola fuente. Esto es lo
    que le prueba a Oscar que el dato es real: no un resumen, los hechos con
    su hora. Cada evento ya estaba guardado; lo que faltaba era juntarlos. */
+/* Motivos de retraso. El técnico escribe desde la tablet; Oscar lo lee sin
+   estar en el taller y ya sabe a quién llamar: al de la pintura, al proveedor,
+   a quien sea. Ese es el punto. */
+function delayReason(c, stage){ return (c.delayWhy || {})[stage] || null; }
+function setDelayReason(c, stage, text, who){
+  if (!c.delayWhy) c.delayWhy = {};
+  const t = String(text || "").trim();
+  if (!t) { delete c.delayWhy[stage]; return; }
+  c.delayWhy[stage] = { text:t, who: who || c.claimedBy || c.tech, at: Date.now() };
+  c.notes.push({ at:Date.now(), who: who || c.claimedBy || c.tech, stage,
+                 text:`Se pasó de tiempo ${atStage(stage)}: ${t}` });
+}
+
 function timeline(c){
   const ev = [{ at:+c.arrived, tipo:"entro", txt:"Entró al taller" }];
   c.stageLog.forEach(l => ev.push({
@@ -1812,7 +1866,7 @@ function renderMgmt(){
   bars($("mix"), Object.entries(mix).sort((a,b)=>b[1]-a[1]), v => `${v}`);
 
   // La lista de a quién llamar: etapas que se pasaron, con nombre y número.
-  const ov = overruns();
+  const ov = overruns();   // cada fila trae su motivo, si lo anotaron
   $("overruns").innerHTML = ov.length ? ov.slice(0,10).map(o => `
     <div class="ov ${varClass(o.v)}">
       <span class="ov-car">${esc(o.car.brand)} ${esc(o.car.model)}<em>${esc(o.car.plate)}</em></span>
@@ -1820,6 +1874,9 @@ function renderMgmt(){
       <span class="ov-who">${esc(o.tech || "sin tomar")}</span>
       <span class="ov-n">${short(o.real)}<em>debía ${short(o.target)}</em></span>
       <span class="ov-d">+${short(o.v.over)}<em>${o.v.pct > 0 ? "+" : ""}${o.v.pct}%</em></span>
+      <span class="ov-why ${o.why ? "" : "falta"}">${o.why
+        ? esc(o.why.text) + `<em>${esc(o.why.who)}</em>`
+        : "sin motivo anotado"}</span>
     </div>`).join("")
     : `<div class="note">Ninguna etapa se pasó del tiempo esperado.</div>`;
   $("tgt-note").textContent = TARGETS_CONFIRMED
@@ -2005,6 +2062,26 @@ function open(id){
       <span class="vt">${esc(e.txt)}${detalle ? `<span class="vq">${esc(detalle)}</span>` : ""}</span>
       <span class="vh">${esc(fecha(e.at))}</span></div>`;
   }).join("");
+
+  /* La caja del motivo sólo existe cuando hay retraso que explicar. */
+  const wbox = $("d-whybox");
+  if (wbox) {
+    const tg = STAGE_TARGET[c.stage];
+    const v = (c.stage !== "Listo" && tg) ? variance(stageMs(c), tg) : null;
+    const pasado = !!(v && v.over > 0);
+    wbox.hidden = !pasado;
+    if (pasado) {
+      const ya = delayReason(c, c.stage);
+      $("d-why").value = ya ? ya.text : "";
+      $("d-why-saved").textContent = ya
+        ? `Anotado por ${ya.who} · ${fecha(ya.at)}`
+        : "Oscar lo va a leer sin estar aquí. Con esto sabe a quién llamar.";
+      $("d-why-quick").innerHTML = MOTIVOS
+        .map(m => `<button type="button" data-m="${esc(m)}">${esc(m)}</button>`).join("");
+      $("d-why-quick").querySelectorAll("button").forEach(b =>
+        b.addEventListener("click", () => { $("d-why").value = b.dataset.m; $("d-why").focus(); }));
+    }
+  }
 
   const chg = $("d-chg");
   if (chg) chg.innerHTML = c.changes.length
@@ -2197,6 +2274,16 @@ $("d-finish").addEventListener("click", () => {
 /* Eliminar NO es entregar. Un carro entregado es trabajo hecho y cuenta en las
    estadísticas; uno eliminado se metió por error y no debe contar en nada. Se
    puede deshacer: borrar de un toque un carro con su historial no se perdona. */
+$("d-why-save").addEventListener("click", () => {
+  const c = cars.find(x => x.id === selected); if (!c) return;
+  const txt = $("d-why").value;
+  setDelayReason(c, c.stage, txt, station.tech || c.claimedBy || c.tech);
+  toast(txt.trim()
+    ? `Motivo anotado · Oscar lo verá en <b>${esc(c.brand)} ${esc(c.model)}</b>`
+    : `Motivo borrado de <b>${esc(c.brand)} ${esc(c.model)}</b>`);
+  open(c.id); paint();
+});
+
 $("d-remove").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const i = cars.indexOf(c);
