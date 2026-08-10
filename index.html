@@ -90,12 +90,13 @@ button{cursor:pointer;border-radius:8px}
 .clockNow{font-family:var(--mono);font-size:13px;color:#B9AE9D;white-space:nowrap}
 
 /* ---------- KPI strip ---------- */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 20px 0}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:16px 20px 0}
 .kpi{
   background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
 }
 .kpi .k{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.kpi .v{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi.hero{border-color:var(--ink);box-shadow:var(--shadow)}
+.kpi .v{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:11px;color:var(--muted);margin-top:4px}
 .kpi.run .v{color:var(--run)}
 .kpi.pause .v{color:var(--pause)}
@@ -468,6 +469,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 body.station-on .board{overflow-x:visible}
 body.station-on .board .col{min-width:0}
 
+@media (max-width:1240px){ .kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
 @media (max-width:1100px){
   .ov,.tw{grid-template-columns:1fr auto;row-gap:2px}
   .ov-st,.ov-who,.tw-c,.tw-o{font-size:11px;color:var(--muted)}
@@ -587,12 +589,12 @@ header{max-width:100%}
             <div id="mix"></div>
           </div>
           <div class="box wide">
-            <h2>Se pasaron del tiempo · a quién preguntar</h2>
+            <h2>Se pasaron del tiempo</h2>
             <div id="overruns"></div>
             <p class="tgt-note" id="tgt-note"></p>
           </div>
           <div class="box wide">
-            <h2>Por técnico · contra el tiempo esperado</h2>
+            <h2>Por técnico</h2>
             <div id="bytech"></div>
           </div>
           <div class="box">
@@ -626,7 +628,7 @@ header{max-width:100%}
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
 
         <div class="sec">
-          <div class="lbl">Tiempo por etapa · trabajado y muerto</div>
+          <div class="lbl">Tiempo por etapa · trabajando y esperando</div>
           <div class="ledger" id="d-ledger"></div>
         </div>
 
@@ -905,8 +907,8 @@ function alerts(){
       const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
       if (v && v.pct >= A.overPct) out.push({
         sev: v.pct >= 100 ? "alta" : "media", kind:"over", car:c,
-        title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} en ${c.stage}`,
-        detail:`Meta ${short(STAGE_TARGET[c.stage])} · ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`,
+        title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} ${atStage(c.stage)}`,
+        detail:`Debía durar ${short(STAGE_TARGET[c.stage])} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`,
         weight: v.over
       });
     }
@@ -916,7 +918,7 @@ function alerts(){
       if (w >= A.unclaimedMin*60000) out.push({
         sev: w >= A.unclaimedMin*3*60000 ? "alta" : "media", kind:"idle", car:c,
         title:`${c.brand} ${c.model} lleva ${short(w)} sin que nadie lo tome`,
-        detail:`Parado en ${c.stage} · ese tiempo cuenta contra la entrega`,
+        detail:`Parado ${atStage(c.stage)} · ese tiempo cuenta contra la entrega`,
         weight: w
       });
     }
@@ -954,7 +956,7 @@ function integrityFlags(){
     });
     if (c.claimedBy && c.running && c.activeSubs.size === 0 && stageMs(c) > 2*H) out.push({
       car:c, stage:c.stage, tech:c.claimedBy, kind:"sin-subetapa",
-      text:`${short(stageMs(c))} en ${c.stage} sin ninguna subetapa marcada`
+      text:`${short(stageMs(c))} ${atStage(c.stage)} sin ninguna subetapa marcada`
     });
   });
   return out;
@@ -992,6 +994,18 @@ function byTech(){
     tech, n:r.n, work:r.work, over:r.over,
     pct: r.target ? Math.round((r.work/r.target - 1) * 100) : null
   })).sort((a,b) => (b.pct ?? -999) - (a.pct ?? -999));
+}
+
+/* "En proceso" ya trae la preposición. Pegarle otra da "en En proceso".
+   Esto arma la frase bien sea cual sea el nombre de la etapa. */
+function atStage(s){
+  const v = String(s || "");
+  return /^en\s/i.test(v) ? v.charAt(0).toLowerCase() + v.slice(1) : "en " + v;
+}
+/* Igual pero para empezar una frase: "En proceso" / "En Preparación". */
+function inStageCap(s){
+  const v = atStage(s);
+  return v.charAt(0).toUpperCase() + v.slice(1);
 }
 
 const $ = id => document.getElementById(id);
@@ -1123,7 +1137,7 @@ function stateLabel(c){
   if (s === "run") return "En trabajo";
   if (s === "pause") return c.overnight ? "Overnight" : "En pausa";
   if (s === "done") return "Listo";
-  return "Libre · esperando";
+  return "Sin tomar";
 }
 function dueParts(c){
   let ms = c.due - Date.now();
@@ -1278,9 +1292,9 @@ function renderStationBar(){
   const run  = mine.filter(c => c.running).length;
   bar.hidden = false;
   bar.innerHTML = `<span class="sb-a">${esc(station.area)}</span>
-    <span class="sb-n">${free} para tomar</span>
+    <span class="sb-n">${free} sin tomar</span>
     <span class="sb-n run">${run} en trabajo</span>
-    <span class="sb-h">Esta tablet muestra solo tu área. Toca un carro para tomarlo.</span>`;
+    <span class="sb-h">Solo tu área. Toca un carro para tomarlo.</span>`;
 }
 
 /* Fin del día: congela todo. Nada corre de noche. */
@@ -1324,7 +1338,7 @@ function renderAlerts(){
   const top = list.slice(0, 4);
   host.innerHTML = `<div class="ab-h">
       <span class="ab-t">Ahora mismo</span>
-      <span class="ab-c">${list.length} cosa(s) que puedes arreglar hoy</span>
+      <span class="ab-c">${list.length} ${list.length === 1 ? "cosa que puedes arreglar" : "cosas que puedes arreglar"}</span>
     </div>` +
     top.map(a => `<button type="button" class="ab ${esc(a.sev)}" data-id="${esc(a.car.id)}">
       <span class="ab-dot"></span>
@@ -1346,14 +1360,14 @@ function renderKpis(){
   const items = [
     ["En taller", cars.length, "vehículos activos", ""],
     ["Eficiencia de flujo", fl.pct === null ? "—" : fl.pct + "%",
-      fl.pct === null ? "sin datos" : `${short(fl.work)} trabajo · ${short(fl.wait)} esperando`,
+      fl.pct === null ? "sin datos" : `de cada hora en el taller, ${Math.round(fl.pct*0.6)} min son trabajo`,
       fl.pct === null ? "" : fl.pct < 40 ? "late" : fl.pct < 60 ? "pause" : "run"],
     ["En trabajo", running, "cronómetro corriendo", "run"],
-    ["Esperando", free, free ? `nadie los ha tomado · ${short(deadNow)} perdidos` : "todos tomados", free ? "pause" : ""],
+    ["Sin tomar", free, free ? `${short(deadNow)} perdidos esperando` : "ninguno esperando", free ? "pause" : ""],
     ["Fuera de promesa", late, "pasaron la entrega", late ? "late" : ""]
   ];
-  $("kpis").innerHTML = items.map(([k,v,s,cls]) =>
-    `<div class="kpi ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`
+  $("kpis").innerHTML = items.map(([k,v,s,cls],i) =>
+    `<div class="kpi ${cls} ${i===1?"hero":""}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`
   ).join("");
 }
 
@@ -1368,8 +1382,8 @@ function cardHtml(c){
     <div class="sub">${esc(c.color)} · ${esc(c.plate)}</div>
     <div class="big">${done ? short(totalMs(c)) : st === "free" ? hms(waitMs(c)) : hms(stageMs(c))}</div>
     <div class="cap">${done ? "total en el taller"
-      : st === "free" ? "esperando que alguien lo tome"
-      : "en " + esc(c.stage.toLowerCase())}</div>
+      : st === "free" ? "nadie lo ha tomado"
+      : esc(atStage(c.stage))}</div>
     ${(() => {
       if (done || st === "free") return "";
       const tg = STAGE_TARGET[c.stage];
@@ -1377,8 +1391,8 @@ function cardHtml(c){
       const v = variance(stageMs(c), tg);
       if (!v) return "";
       return `<div class="vsr ${varClass(v)}">${v.over > 0
-        ? `${short(v.over)} sobre lo esperado (${short(tg)})`
-        : `dentro de lo esperado · meta ${short(tg)}`}</div>`;
+        ? `${short(v.over)} de más · debía durar ${short(tg)}`
+        : `en tiempo · debía durar ${short(tg)}`}</div>`;
     })()}
     <div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
@@ -1463,7 +1477,7 @@ function renderMgmt(){
       <span class="ov-car">${esc(o.car.brand)} ${esc(o.car.model)}<em>${esc(o.car.plate)}</em></span>
       <span class="ov-st">${esc(o.stage)}${o.live ? " · en curso" : ""}</span>
       <span class="ov-who">${esc(o.tech || "sin tomar")}</span>
-      <span class="ov-n">${short(o.real)}<em>meta ${short(o.target)}</em></span>
+      <span class="ov-n">${short(o.real)}<em>debía ${short(o.target)}</em></span>
       <span class="ov-d">+${short(o.v.over)}<em>${o.v.pct > 0 ? "+" : ""}${o.v.pct}%</em></span>
     </div>`).join("")
     : `<div class="note">Ninguna etapa se pasó del tiempo esperado.</div>`;
@@ -1477,8 +1491,8 @@ function renderMgmt(){
       <span class="tw-n">${esc(r.tech)}</span>
       <span class="tw-c">${r.n} etapa(s)</span>
       <span class="tw-t">${short(r.work)}</span>
-      <span class="tw-p">${r.pct === null ? "sin referencia" : (r.pct > 0 ? "+" : "") + r.pct + "% vs meta"}</span>
-      <span class="tw-o">${r.over ? r.over + " sobre tiempo" : "—"}</span>
+      <span class="tw-p">${r.pct === null ? "sin referencia" : (r.pct > 0 ? "+" : "") + r.pct + "% del tiempo previsto"}</span>
+      <span class="tw-o">${r.over ? r.over + " se pasaron" : "—"}</span>
     </div>`).join("")
     : `<div class="note">Todavía no hay etapas cerradas con técnico registrado.</div>`;
 
@@ -1500,7 +1514,7 @@ function renderStage(c){
     const v = variance(ms, tgt);
     const state = i < at ? "done" : i === at ? "now" : "next";
     const time = ms ? short(ms) : (i === at ? "0m" : "—");
-    const meta = tgt ? `meta ${short(tgt)}` : "sin meta";
+    const meta = tgt ? `debe durar ${short(tgt)}` : "sin tiempo fijado";
     return `<button type="button" class="step ${state} ${v ? varClass(v) : ""}" data-stage="${esc(s)}">
       <span class="step-n">${i+1}</span>
       <span class="step-b">
@@ -1572,8 +1586,8 @@ function open(id){
   hero.classList.toggle("is-run", st === "run");
   hero.classList.toggle("is-pause", st === "pause");
   $("d-hero-lbl").textContent = st === "done" ? "Tiempo total de trabajo"
-    : st === "free" ? `Esperando en ${c.stage} — nadie lo ha tomado`
-    : `Tiempo trabajado en ${c.stage}`;
+    : st === "free" ? `Esperando ${atStage(c.stage)} — nadie lo ha tomado`
+    : `Tiempo trabajado ${atStage(c.stage)}`;
   $("d-hero-t").textContent = st === "done" ? short(totalMs(c))
     : st === "free" ? hms(waitMs(c)) : hms(stageMs(c));
   const pill = $("d-pill");
@@ -1616,18 +1630,18 @@ function open(id){
     const rows = c.stageLog.map(l => `<div class="lg">
         <span class="lg-s">${esc(l.stage)}</span>
         <span class="lg-w">${short(l.work)}</span>
-        <span class="lg-d">${l.wait ? "esperó " + short(l.wait) : "—"}</span>
+        <span class="lg-d">${l.wait ? short(l.wait) + " esperando" : "—"}</span>
         <span class="lg-t">${esc(l.tech||"")}</span>
       </div>`).join("");
     const cur = c.stage !== "Listo" ? `<div class="lg now">
         <span class="lg-s">${esc(c.stage)}</span>
         <span class="lg-w">${short(stageMs(c))}</span>
-        <span class="lg-d">${waitMs(c) ? "esperó " + short(waitMs(c)) : "—"}</span>
+        <span class="lg-d">${waitMs(c) ? short(waitMs(c)) + " esperando" : "—"}</span>
         <span class="lg-t">${esc(c.claimedBy||"sin tomar")}</span>
       </div>` : "";
     const tw = c.stageLog.reduce((a,l)=>a+l.wait,0) + waitMs(c);
     led.innerHTML = (rows + cur || `<div class="lg"><span class="lg-s">Sin etapas cerradas</span></div>`)
-      + (tw ? `<div class="lg tot"><span class="lg-s">Tiempo muerto total</span><span class="lg-w"></span><span class="lg-d">${short(tw)}</span><span class="lg-t"></span></div>` : "");
+      + (tw ? `<div class="lg tot"><span class="lg-s">Total esperando</span><span class="lg-w"></span><span class="lg-d">${short(tw)}</span><span class="lg-t"></span></div>` : "");
   }
   $("d-more-s").textContent = `Ficha del vehículo · servicios, entrega y ${c.notes.length} nota(s)`;
   $("d-due").classList.toggle("bad", dp.late);
@@ -1658,8 +1672,8 @@ function paint(){
     if (view === "board") renderBoard(); else renderList();
     const freeN = cars.filter(c => stateOf(c)==="free").length;
     $("ops-hint").textContent = freeN
-      ? `${freeN} vehículo(s) esperando que alguien los tome. Ese tiempo se está contando.`
-      : `Cada etapa cuenta su propio tiempo desde 0. Terminar suelta el carro para la siguiente área.`;
+      ? `${freeN} ${freeN === 1 ? "vehículo lleva" : "vehículos llevan"} rato sin que nadie los tome. Ese tiempo cuenta contra la entrega.`
+      : `Cada etapa cuenta su tiempo desde 0. Al terminar, el carro queda libre para la siguiente área.`;
   } else {
     renderMgmt();
   }
@@ -1736,15 +1750,15 @@ $("d-primary").addEventListener("click", () => {
   const st = stateOf(c);
   if (st === "run") {
     pause(c, true);
-    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Pausado en ${c.stage} · ${short(stageMs(c))} trabajados.` });
+    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Pausado ${atStage(c.stage)} · ${short(stageMs(c))} trabajados.` });
   } else if (st === "free") {
     // Tomar el trabajo: quien lo toma queda registrado.
     const who = station.tech || c.tech;
     claim(c, who);
-    c.notes.push({ at:Date.now(), who, stage:c.stage, text:`${who} tomó el trabajo en ${c.stage}.` });
+    c.notes.push({ at:Date.now(), who, stage:c.stage, text:`${who} tomó el trabajo ${atStage(c.stage)}.` });
   } else if (st !== "done") {
     start(c);
-    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Trabajo reanudado en ${c.stage}.` });
+    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Trabajo reanudado ${atStage(c.stage)}.` });
   }
   open(c.id); paint();
 });
