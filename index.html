@@ -433,6 +433,25 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .tw-c,.tw-o{color:var(--muted);font-size:11px}
 .tw-t,.tw-p{font-variant-numeric:tabular-nums;font-weight:600}
 .tw.bad .tw-p{color:var(--late)}.tw.warn .tw-p{color:var(--pause)}.tw.good .tw-p{color:var(--run)}
+/* ── Banda de intervención: lo que se está rompiendo AHORA ── */
+#alertband{margin:0 0 12px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);overflow:hidden;box-shadow:var(--shadow)}
+#alertband[hidden]{display:none}
+.ab-h{display:flex;align-items:baseline;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line)}
+.ab-t{font-family:var(--disp);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--ink)}
+.ab-c{font-size:11px;color:var(--muted)}
+.ab{display:grid;grid-template-columns:12px 1fr;gap:10px;align-items:start;width:100%;
+  padding:11px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;
+  text-align:left;font:inherit;cursor:pointer;min-height:52px}
+.ab:last-child{border-bottom:none}
+.ab:hover{background:var(--chip-bg)}
+.ab-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--pause-hot)}
+.ab.alta .ab-dot{background:var(--late-hot)}
+.ab-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ab-ti{font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
+.ab.alta .ab-ti{color:var(--late)}
+.ab-de{font-size:11px;color:var(--muted);line-height:1.35}
+
 /* Botón de tema */
 .themebtn{width:44px;height:44px;margin-left:8px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);font-size:17px;cursor:pointer;flex:0 0 auto}
@@ -499,8 +518,8 @@ header{max-width:100%}
     <div class="logo">
       <div class="mark"><img src="assets/topcar-logo.png" alt="Topcar By LCP Group"/></div>
       <div>
-        <b>Topcar By LCP Group</b>
-        <span>Centro de operaciones</span>
+        <b id="shop-name">Topcar By LCP Group</b>
+        <span id="shop-sub">Centro de operaciones</span>
       </div>
     </div>
     <div class="rail-sp"></div>
@@ -531,6 +550,7 @@ header{max-width:100%}
       </div>
 
       <section id="panel-ops">
+        <div id="alertband"></div>
         <div class="opsbar">
           <button type="button" class="newbtn" id="new-car"><span class="plus">+</span> Entró un vehículo</button>
           <p class="hint" id="ops-hint"></p>
@@ -754,41 +774,75 @@ header{max-width:100%}
    - Las subetapas están todas juntas y se eligen 1 o varias
    ============================================================ */
 
-const STAGES = ["Recepción","Preparación","En proceso","Control de calidad","Listo"];
+/* ══════════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN DEL TALLER
+   Todo lo que cambia de un cliente a otro vive aquí. El tablero no sabe
+   nada de Topcar: lee esto. Un taller nuevo es un archivo, no un rediseño.
+   ══════════════════════════════════════════════════════════════════════ */
+const SHOP = {
+  id: "topcar",
+  name: "Topcar By LCP Group",
+  subtitle: "Centro de operaciones",
+  locale: "es-DO",
+  /* El día del taller. Los cronómetros se congelan al cerrar y vuelven solos. */
+  hours: { openH: 8, openM: 15, closeH: 17, closeM: 30 },
 
-const CATALOG = {
-  "Modesta Coatings":{
-    skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T"],
-    subs:["Lavado","Descontaminación de pintura","Corrección de pintura","Aplicación de Modesta","Curado de Modesta con lámparas IR","Revisado y listo"]
+  /* Las áreas físicas. Cada una puede ser la tablet de alguien.
+     target = lo que debería durar. null = sin referencia todavía. */
+  stages: [
+    { name: "Recepción",          target: 0.5 },
+    { name: "Preparación",        target: 2 },
+    { name: "En proceso",         target: 6 },
+    { name: "Control de calidad", target: 1 },
+    { name: "Listo",              target: null }
+  ],
+
+  /* Los servicios que vende el taller, con sus pasos y lo que debe durar
+     cada paso. Esto es lo que Oscar ajusta con su experiencia. */
+  services: {
+    "Modesta Coatings": {
+      skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T"],
+      slaDays: 2,
+      steps:[["Lavado",0.75],["Descontaminación de pintura",1],["Corrección de pintura",3],
+             ["Aplicación de Modesta",2.5],["Curado de Modesta con lámparas IR",2],["Revisado y listo",0.5]]
+    },
+    "PPF": {
+      skus:["PPF Full Front","PPF Full Car","PPF P/P"],
+      slaDays: 4,
+      steps:[["Lavado",0.75],["Descontaminación de pintura",1],["Corrección de pintura",3],
+             ["Revisión de pintura para instalar PPF",0.5],["Ploteo de piezas",1.5],
+             ["Instalación de PPF",4],["Tiempo de secado al sol",1],["Revisado y listo",0.5]]
+    },
+    "Laminado de cristales": {
+      skus:["Cristal delantero","Vehículo completo","P/cristal","3M IR Colorstable","Llumar CTX","Llumar ATR","Lámina anti-rotura cristal delantero"],
+      slaHours: 3,
+      steps:[["Cortando la lámina",0.75],["Instalando",1.5],["Revisado y listo",0.5]]
+    },
+    "Pintura automotriz": {
+      skus:["Pintura P/P sin desabolladura","Pintura P/P reparación","Pintura P/P salvamento","Pintura veh. completo","Pintura P/P de aros","Brillado P/P de aros","Pintura de P/P de callipers"],
+      slaDays: null,
+      steps:[["Desarme",2],["Desmonte de aros",0.5],["En reparación",5],["En preparación",3],
+             ["En cabina de pintura",5],["Repulido y brillado",2.5],["Arme",2],["Lavado y detallado",1],["Revisado y listo",0.5]]
+    },
+    "NGENCO": {
+      skus:["PPS Full Front","PPS Full Car","Color Change"],
+      slaDays: null,
+      steps:[["Desarme",2],["Desmonte de aros",0.5],["En reparación",5],["En preparación",3],
+             ["En cabina de pintura",5],["Repulido y brillado",2.5],["Arme",2],["Lavado y detallado",1],["Revisado y listo",0.5]]
+    }
   },
-  "PPF":{
-    skus:["PPF Full Front","PPF Full Car","PPF P/P"],
-    subs:["Lavado","Descontaminación de pintura","Corrección de pintura","Revisión de pintura para instalar PPF","Ploteo de piezas","Instalación de PPF","Tiempo de secado al sol","Revisado y listo"]
-  },
-  "Laminado de cristales":{
-    skus:["Cristal delantero","Vehículo completo","P/cristal","3M IR Colorstable","Llumar CTX","Llumar ATR","Lámina anti-rotura cristal delantero"],
-    subs:["Cortando la lámina","Instalando","Revisado y listo"]
-  },
-  "Pintura automotriz":{
-    skus:["Pintura P/P sin desabolladura","Pintura P/P reparación","Pintura P/P salvamento","Pintura veh. completo","Pintura P/P de aros","Brillado P/P de aros","Pintura de P/P de callipers"],
-    subs:["Desarme","Desmonte de aros","En reparación","En preparación","En cabina de pintura","Repulido y brillado","Arme","Lavado y detallado","Revisado y listo"]
-  },
-  "NGENCO":{
-    skus:["PPS Full Front","PPS Full Car","Color Change"],
-    subs:["Desarme","Desmonte de aros","En reparación","En preparación","En cabina de pintura","Repulido y brillado","Arme","Lavado y detallado","Revisado y listo"]
-  }
+  comboDays: 6,
+  /* ¿Oscar ya fijó sus tiempos? Hasta entonces la pantalla lo dice. */
+  targetsConfirmed: false,
+  /* Cuándo avisar. Estos umbrales son la diferencia entre un reporte y
+     una intervención. */
+  alerts: { overPct: 25, unclaimedMin: 30, promiseRiskH: 4 }
 };
 
-// Oscar: todas las subetapas juntas, sin importar el servicio.
-const ALL_SUBS = (() => {
-  const seen = new Set(), out = [];
-  for (const f of Object.values(CATALOG)) for (const s of f.subs) if (!seen.has(s)) { seen.add(s); out.push(s); }
-  return out;
-})();
-const ALL_SKUS = Object.values(CATALOG).flatMap(f => f.skus);
-const SKU_FAMILY = {};
-for (const [fam, def] of Object.entries(CATALOG)) for (const s of def.skus) SKU_FAMILY[s] = fam;
-
+/* ── Derivado de la configuración. Nada de esto se escribe a mano. ── */
+const STAGES = SHOP.stages.map(s => s.name);
+const CATALOG = Object.fromEntries(Object.entries(SHOP.services).map(([k,v]) =>
+  [k, { skus: v.skus, subs: v.steps.map(s => s[0]) }]));
 const TECHS = ["Luis M.","Ana R.","Carlos P.","María G.","Equipo A","Equipo B","Diego S."];
 
 /* ---------- helpers ---------- */
@@ -798,36 +852,11 @@ const H = 3600000;
    Sin un objetivo, "2 horas" no dice nada. Con objetivo, dice "el doble".
    Estos son PUNTOS DE PARTIDA para que Oscar los ajuste con su experiencia;
    la pantalla los marca como estimados hasta que él los confirme. */
-const TARGETS_CONFIRMED = false;   // Oscar aún no ha fijado los suyos
-const STAGE_TARGET = {
-  "Recepción": 0.5*H,
-  "Preparación": 2*H,
-  "En proceso": 6*H,
-  "Control de calidad": 1*H,
-  "Listo": null
-};
-const SUB_TARGET = {
-  "Lavado": 0.75*H,
-  "Descontaminación de pintura": 1*H,        // el ejemplo de Oscar
-  "Corrección de pintura": 3*H,
-  "Aplicación de Modesta": 2.5*H,
-  "Curado de Modesta con lámparas IR": 2*H,
-  "Revisión de pintura para instalar PPF": 0.5*H,
-  "Ploteo de piezas": 1.5*H,
-  "Instalación de PPF": 4*H,
-  "Tiempo de secado al sol": 1*H,
-  "Cortando la lámina": 0.75*H,
-  "Instalando": 1.5*H,
-  "Desarme": 2*H,
-  "Desmonte de aros": 0.5*H,
-  "En reparación": 5*H,
-  "En preparación": 3*H,
-  "En cabina de pintura": 5*H,
-  "Repulido y brillado": 2.5*H,
-  "Arme": 2*H,
-  "Lavado y detallado": 1*H,
-  "Revisado y listo": 0.5*H
-};
+const TARGETS_CONFIRMED = SHOP.targetsConfirmed;
+const STAGE_TARGET = Object.fromEntries(SHOP.stages.map(s => [s.name, s.target ? s.target*H : null]));
+const SUB_TARGET = Object.fromEntries(
+  Object.values(SHOP.services).flatMap(v => v.steps).map(([n,h]) => [n, h*H]));
+
 /* Cuánto se pasó (o se ahorró) contra lo esperado. null = sin referencia. */
 function variance(actualMs, targetMs){
   if (!targetMs || !actualMs) return null;
@@ -840,6 +869,97 @@ function varClass(v){
   if (v.pct <= -15) return "good";    // más rápido de lo esperado
   return "ok";
 }
+/* ══ EFICIENCIA DE FLUJO ═══════════════════════════════════════════════
+   El número que de verdad importa: de todo el tiempo que un carro pasa en
+   el taller, ¿cuánto fue trabajo? Si un carro está 3 días y solo 8 horas
+   fueron trabajo, el problema no es que la gente sea lenta — es que el
+   carro pasó 2 días esperando. Ahí está el dinero. */
+function carWork(c){
+  return STAGES.reduce((a,s) => a + (c.stageMs[s]||0), 0) + liveDelta(c);
+}
+function carWait(c){
+  return STAGES.reduce((a,s) => a + (c.waitMs[s]||0), 0) + liveWait(c);
+}
+function carFlow(c){
+  const w = carWork(c), d = carWait(c);
+  return (w + d) > 0 ? w / (w + d) : null;
+}
+function shopFlow(){
+  const active = cars.filter(c => c.stage !== "Listo" || carWork(c) > 0);
+  const w = active.reduce((a,c) => a + carWork(c), 0);
+  const d = active.reduce((a,c) => a + carWait(c), 0);
+  return { work:w, wait:d, pct: (w+d) > 0 ? Math.round(w/(w+d)*100) : null };
+}
+
+/* ══ INTERVENCIÓN ══════════════════════════════════════════════════════
+   Un reporte se lee mañana; una alerta se actúa hoy. Esto mira el taller
+   ahora mismo y dice qué se está rompiendo mientras todavía se puede
+   arreglar. Cada alerta trae el carro, el nombre y el número. */
+function alerts(){
+  const out = [];
+  const A = SHOP.alerts;
+  cars.forEach(c => {
+    if (c.stage === "Listo") return;
+    // 1. Alguien está encima del tiempo, ahora mismo.
+    if (c.claimedBy && c.running) {
+      const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
+      if (v && v.pct >= A.overPct) out.push({
+        sev: v.pct >= 100 ? "alta" : "media", kind:"over", car:c,
+        title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} en ${c.stage}`,
+        detail:`Meta ${short(STAGE_TARGET[c.stage])} · ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`,
+        weight: v.over
+      });
+    }
+    // 2. Nadie lo ha tomado y el reloj corre.
+    if (isWaiting(c)) {
+      const w = waitMs(c);
+      if (w >= A.unclaimedMin*60000) out.push({
+        sev: w >= A.unclaimedMin*3*60000 ? "alta" : "media", kind:"idle", car:c,
+        title:`${c.brand} ${c.model} lleva ${short(w)} sin que nadie lo tome`,
+        detail:`Parado en ${c.stage} · ese tiempo cuenta contra la entrega`,
+        weight: w
+      });
+    }
+    // 3. La promesa al cliente está en riesgo (proyección, no adivinanza).
+    const left = STAGES.slice(STAGES.indexOf(c.stage))
+      .reduce((a,s) => a + (STAGE_TARGET[s] || 0), 0) - stageMs(c);
+    const until = c.due - Date.now();
+    if (left > 0 && until > 0 && left > until - A.promiseRiskH*H) out.push({
+      sev: left > until ? "alta" : "media", kind:"promise", car:c,
+      title:`${c.brand} ${c.model} no llega a la entrega al ritmo actual`,
+      detail:`Faltan ${short(left)} de trabajo y quedan ${short(until)} · ${c.client}`,
+      weight: left - until
+    });
+  });
+  const rank = { alta:0, media:1 };
+  return out.sort((a,b) => (rank[a.sev]-rank[b.sev]) || (b.weight-a.weight));
+}
+
+/* ══ INTEGRIDAD ════════════════════════════════════════════════════════
+   El dato solo sirve si no se puede maquillar. Esto marca los patrones
+   que no cuadran, en vez de presentarlos como verdad. */
+function integrityFlags(){
+  const out = [];
+  cars.forEach(c => {
+    c.stageLog.forEach(l => {
+      const tgt = STAGE_TARGET[l.stage];
+      if (tgt && l.work > 0 && l.work < tgt*0.2) out.push({
+        car:c, stage:l.stage, tech:l.tech, kind:"muy-rapido",
+        text:`${l.stage} cerrada en ${short(l.work)} contra una meta de ${short(tgt)} — confirmar que se hizo`
+      });
+      if (l.work === 0) out.push({
+        car:c, stage:l.stage, tech:l.tech, kind:"sin-tiempo",
+        text:`${l.stage} quedó sin tiempo registrado — se movió sin tomar el trabajo`
+      });
+    });
+    if (c.claimedBy && c.running && c.activeSubs.size === 0 && stageMs(c) > 2*H) out.push({
+      car:c, stage:c.stage, tech:c.claimedBy, kind:"sin-subetapa",
+      text:`${short(stageMs(c))} en ${c.stage} sin ninguna subetapa marcada`
+    });
+  });
+  return out;
+}
+
 /* Etapas ya cerradas que se pasaron del tiempo — la lista de a quién llamar. */
 function overruns(){
   const out = [];
@@ -1171,7 +1291,7 @@ function endDay(){
   return n;
 }
 /* A las 8:15 el taller abre y los cronómetros vuelven solos. */
-const SHOP_OPEN_H = 8, SHOP_OPEN_M = 15;
+const SHOP_OPEN_H = SHOP.hours.openH, SHOP_OPEN_M = SHOP.hours.openM;
 let lastResumeDay = null;
 function autoResume(){
   const now = new Date();
@@ -1195,6 +1315,26 @@ function visible(){
 }
 
 /* ---------- render: KPIs ---------- */
+function renderAlerts(){
+  const host = $("alertband");
+  if (!host) return;
+  const list = alerts();
+  if (!list.length) { host.innerHTML = ""; host.hidden = true; return; }
+  host.hidden = false;
+  const top = list.slice(0, 4);
+  host.innerHTML = `<div class="ab-h">
+      <span class="ab-t">Ahora mismo</span>
+      <span class="ab-c">${list.length} cosa(s) que puedes arreglar hoy</span>
+    </div>` +
+    top.map(a => `<button type="button" class="ab ${esc(a.sev)}" data-id="${esc(a.car.id)}">
+      <span class="ab-dot"></span>
+      <span class="ab-b"><span class="ab-ti">${esc(a.title)}</span>
+      <span class="ab-de">${esc(a.detail)}</span></span>
+    </button>`).join("");
+  host.querySelectorAll(".ab").forEach(b =>
+    b.addEventListener("click", () => open(b.dataset.id)));
+}
+
 function renderKpis(){
   const running = cars.filter(c => stateOf(c) === "run").length;
   const free    = cars.filter(c => stateOf(c) === "free").length;
@@ -1202,8 +1342,12 @@ function renderKpis(){
   const late    = cars.filter(c => dueParts(c).late && c.stage !== "Listo").length;
   // Tiempo muerto vivo: lo que ahora mismo se acumula sin que nadie trabaje.
   const deadNow = cars.filter(c => stateOf(c)==="free").reduce((a,c)=>a+waitMs(c),0);
+  const fl = shopFlow();
   const items = [
     ["En taller", cars.length, "vehículos activos", ""],
+    ["Eficiencia de flujo", fl.pct === null ? "—" : fl.pct + "%",
+      fl.pct === null ? "sin datos" : `${short(fl.work)} trabajo · ${short(fl.wait)} esperando`,
+      fl.pct === null ? "" : fl.pct < 40 ? "late" : fl.pct < 60 ? "pause" : "run"],
     ["En trabajo", running, "cronómetro corriendo", "run"],
     ["Esperando", free, free ? `nadie los ha tomado · ${short(deadNow)} perdidos` : "todos tomados", free ? "pause" : ""],
     ["Fuera de promesa", late, "pasaron la entrega", late ? "late" : ""]
@@ -1507,6 +1651,7 @@ function close(){
 /* ---------- paint / tick ---------- */
 function paint(){
   renderKpis();
+  renderAlerts();
   if (tab === "ops") {
     $("board").hidden = view !== "board";
     $("list").hidden  = view !== "list";
@@ -1639,14 +1784,11 @@ $("d-note-add").addEventListener("click", () => {
 
 /* ---------- entrada de vehículos y cambios de servicio ---------- */
 // Tiempos de referencia que dio el taller. Lo que no dieron, se pregunta al cliente.
-const SLA = {
-  "Modesta Coatings":      { ms: 2*24*H, txt:"Cerámica Modesta: 2 días." },
-  "PPF":                   { ms: 4*24*H, txt:"PPF: 3–4 días." },
-  "Laminado de cristales": { ms: 3*H,    txt:"Laminado de cristales: 3 horas." },
-  "Pintura automotriz":    { ms: null,   txt:"Pintura automotriz: sin tiempo de referencia." },
-  "NGENCO":                { ms: null,   txt:"NGENCO: sin tiempo de referencia." }
-};
-const COMBO_MS = 6*24*H;   // "todos los servicios combinados: 5–6 días"
+const SLA = Object.fromEntries(Object.entries(SHOP.services).map(([k,v]) => [k, {
+  ms: v.slaDays ? v.slaDays*24*H : (v.slaHours ? v.slaHours*H : null),
+  txt: v.slaDays ? `${k}: ${v.slaDays} día(s).` : (v.slaHours ? `${k}: ${v.slaHours} horas.` : `${k}: sin tiempo de referencia.`)
+}]));
+const COMBO_MS = SHOP.comboDays*24*H;   // "todos los servicios combinados: 5–6 días"
 
 function famsOf(skus){
   const out = [];
