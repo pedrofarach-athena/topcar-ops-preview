@@ -252,7 +252,7 @@ aside{
   border:1px solid var(--line);background:var(--card);padding:13px 14px;border-radius:10px;
   font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
 }
-.btn:hover{background:var(--card)}
+.btn:hover{background:var(--chip-bg)}
 .btn.go{background:var(--run);border-color:var(--run);color:var(--on-accent)}
 .btn.hold{background:var(--pause);border-color:var(--pause);color:var(--on-accent)}
 .btn.row{display:flex;align-items:center;justify-content:center;gap:8px}
@@ -445,6 +445,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 
 /* ── v10: tomar / esperar / terminar, y tablets por área ── */
 .card.is-free{border-left-style:dashed;border-left-color:var(--pause)}
+.card.is-done{border-left-color:var(--run-hot)}
 .card.is-free .big{color:var(--pause)}
 .station{margin-left:8px}
 #station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
@@ -1176,7 +1177,9 @@ function newCar(o){
     // Nadie asigna: el carro espera libre hasta que un técnico lo toma.
     claimedBy:o.claimedBy || null,   // null = libre, nadie lo ha tomado
     waitFrom:o.waitFrom || Date.now(),// desde cuándo espera en esta etapa
-    waitMs:{},               // ms de ESPERA acumulado por etapa (tiempo muerto)
+    waitMs:{},               // ms de ESPERA acumulado por etapa (nadie lo ha tomado)
+    pauseMs:{},              // ms PAUSADO a propósito por quien lo tiene
+    pauseFrom:null,
     stageLog:[],             // historial cerrado: {stage, tech, work, wait}
     readyAt:null,            // cuándo quedó LISTO (empieza a contar la espera del cliente)
     delivered:null,          // cuándo se lo llevó el cliente. Con esto sale de operaciones.
@@ -1186,7 +1189,7 @@ function newCar(o){
     subMs:{},                // ms acumulado por subetapa
     notes:o.notes ? o.notes.slice() : []
   };
-  STAGES.forEach(s => { c.stageMs[s] = 0; c.waitMs[s] = 0; });
+  STAGES.forEach(s => { c.stageMs[s] = 0; c.waitMs[s] = 0; c.pauseMs[s] = 0; });
   return c;
 }
 
@@ -1198,6 +1201,19 @@ function totalMs(c){
 /* Reloj de pared: desde que entró hasta que el cliente se lo llevó (o hasta
    ahora). Es lo que el cliente siente. Siempre >= trabajo + espera. */
 function inShopMs(c){ return (c.delivered || Date.now()) - (+c.arrived); }
+
+/* El número grande y su rótulo, juntos y de una sola fuente. Si se calculan
+   en dos sitios, uno de los dos termina mintiendo. */
+function relojVivo(c){
+  const st = stateOf(c);
+  if (st === "done") return c.readyAt && !c.delivered
+    ? { txt: short(readyMs(c)), cap: "listo · esperando que lo recojan" }
+    : { txt: short(carWork(c)), cap: "total trabajado" };
+  if (st === "free")  return { txt: hms(waitMs(c)),  cap: "nadie lo ha tomado" };
+  if (st === "pause") return { txt: hms(stageMs(c)),
+    cap: c.overnight ? "overnight · el taller estaba cerrado" : `pausado por ${c.claimedBy || c.tech}` };
+  return { txt: hms(stageMs(c)), cap: atStage(c.stage) };
+}
 
 /* ══ HOJA DE VIDA ═══════════════════════════════════════════════════════
    Todo lo que le pasó al carro, en orden, de una sola fuente. Esto es lo
@@ -1259,7 +1275,7 @@ function toast(html, undo){
 }
 function readyMs(c){ return c.readyAt ? Date.now() - c.readyAt : 0; }
 function deliver(c, who){
-  bank(c); bankWait(c);
+  bank(c); bankWait(c); bankPause(c);
   c.running = false; c.runFrom = null; c.overnight = false;
   c.activeSubs.clear();
   c.delivered = Date.now();
@@ -1279,26 +1295,38 @@ function bankWait(c){
   c.waitMs[c.stage] = (c.waitMs[c.stage]||0) + d;
   c.waitFrom = Date.now();
 }
+/* La pausa deliberada. La noche NO entra aquí: el taller cerrado no es
+   culpa de nadie y tiene su propia explicación. */
+function livePause(c){ return c.pauseFrom ? Date.now() - c.pauseFrom : 0; }
+function pauseMsOf(c){ return (c.pauseMs[c.stage]||0) + livePause(c); }
+function carPause(c){ return STAGES.reduce((a,s) => a + (c.pauseMs[s]||0), 0) + livePause(c); }
+function bankPause(c){
+  const d = livePause(c);
+  if (!d) return;
+  c.pauseMs[c.stage] = (c.pauseMs[c.stage]||0) + d;
+  c.pauseFrom = null;
+}
 /* TOMAR: un técnico reclama el carro y arranca su cronómetro. */
 function claim(c, tech){
-  bankWait(c);
+  bankWait(c); bankPause(c);
   c.claimedBy = tech || c.tech;
   c.tech = c.claimedBy;
   c.waitFrom = null;
   start(c);
 }
 function start(c){
-  bank(c);
+  bank(c); bankPause(c);
   c.running = true; c.overnight = false; c.everStarted = true; c.runFrom = Date.now();
 }
 function pause(c, overnight){
   bank(c);
   c.running = false; c.runFrom = null; c.overnight = !!overnight;
+  c.pauseFrom = overnight ? null : Date.now();
 }
 /* TERMINAR: cierra la etapa, suelta el carro y empieza a contar la espera
    en la etapa siguiente hasta que alguien la tome. */
 function finishStage(c){
-  bank(c); bankWait(c);
+  bank(c); bankWait(c); bankPause(c);
   const i = STAGES.indexOf(c.stage);
   c.stageLog.push({
     stage: c.stage, tech: c.claimedBy || c.tech,
@@ -1315,7 +1343,7 @@ function finishStage(c){
 }
 function moveTo(c, stage){
   if (c.stage === stage) return;
-  bank(c); bankWait(c);
+  bank(c); bankWait(c); bankPause(c);
   /* Hay dos formas de salir de una etapa: terminarla o moverla a mano.
      Si sólo una deja huella, la hoja de vida miente por omisión. Se guarda
      el tiempo AÚN NO registrado, para no contarlo dos veces si el carro
@@ -1622,7 +1650,8 @@ function cardHtml(c){
   /* Dos ejes distintos, dos señales distintas: el borde izquierdo dice
      QUIÉN está encima; la franja derecha dice si va TARDE. Antes "tarde"
      nunca se veía en un carro trabajando, que es justo cuando importa. */
-  const own  = st === "run" ? "is-run" : st === "free" ? "is-free" : st === "pause" ? "is-pause" : "";
+  const own  = st === "run" ? "is-run" : st === "free" ? "is-free"
+             : st === "pause" ? "is-pause" : st === "done" ? "is-done" : "";
   const late = (dueParts(c).late && c.stage !== "Listo") ? " is-late" : "";
   const cls  = (own + late).trim();
   const subs = [...c.activeSubs];
@@ -1630,11 +1659,8 @@ function cardHtml(c){
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
     <div class="name">${esc(c.brand)} ${esc(c.model)}</div>
     <div class="sub">${esc(c.color)} · ${esc(c.plate)}</div>
-    <div class="big">${done ? (c.readyAt ? short(readyMs(c)) : short(totalMs(c)))
-      : st === "free" ? hms(waitMs(c)) : hms(stageMs(c))}</div>
-    <div class="cap">${done ? (c.readyAt ? "listo · esperando que lo recojan" : "total en el taller")
-      : st === "free" ? "nadie lo ha tomado"
-      : esc(atStage(c.stage))}</div>
+    <div class="big">${relojVivo(c).txt}</div>
+    <div class="cap">${esc(relojVivo(c).cap)}</div>
     ${(() => {
       if (done || st === "free") return "";
       const tg = STAGE_TARGET[c.stage];
@@ -1882,11 +1908,13 @@ function open(id){
   const hero = $("d-hero");
   hero.classList.toggle("is-run", st === "run");
   hero.classList.toggle("is-pause", st === "pause");
-  $("d-hero-lbl").textContent = st === "done" ? "Tiempo total de trabajo"
-    : st === "free" ? `Esperando ${atStage(c.stage)} — nadie lo ha tomado`
-    : `Tiempo trabajado ${atStage(c.stage)}`;
-  $("d-hero-t").textContent = st === "done" ? short(totalMs(c))
-    : st === "free" ? hms(waitMs(c)) : hms(stageMs(c));
+  {
+    const r = relojVivo(c);
+    $("d-hero-lbl").textContent = st === "free"
+      ? `Esperando ${atStage(c.stage)} — nadie lo ha tomado`
+      : r.cap.charAt(0).toUpperCase() + r.cap.slice(1);
+  }
+  $("d-hero-t").textContent = relojVivo(c).txt;
   const pill = $("d-pill");
   pill.className = "pill " + (st==="run"?"run":st==="pause"?"pause":"");
   pill.innerHTML = `<span class="dot"></span>${stateLabel(c)}`;
@@ -1965,14 +1993,15 @@ function open(id){
     const tot = (etq, w, d) => `<div class="lg tot">
         <span class="lg-s">${etq}</span><span class="lg-w">${w}</span>
         <span class="lg-d">${d}</span><span class="lg-t"></span></div>`;
-    const tTrab = carWork(c), tEsp = carWait(c), tCasa = inShopMs(c);
-    const fuera = Math.max(0, tCasa - tTrab - tEsp);   // noches y taller cerrado
+    const tTrab = carWork(c), tEsp = carWait(c), tPau = carPause(c), tCasa = inShopMs(c);
+    const fuera = Math.max(0, tCasa - tTrab - tEsp - tPau);
     led.innerHTML = (rows + cur || `<div class="lg"><span class="lg-s">Sin etapas cerradas</span></div>`)
       + tot("Total trabajado", short(tTrab), "")
-      + (tEsp ? tot("Total esperando", "", short(tEsp) + " parado") : "")
+      + (tPau ? tot("Total en pausa", "", short(tPau) + " a propósito") : "")
+      + (tEsp ? tot("Total esperando", "", short(tEsp) + " sin que nadie lo tomara") : "")
       + `<div class="lg tot neutra"><span class="lg-s">En el taller</span><span class="lg-w"></span>
          <span class="lg-d">${short(tCasa)}</span><span class="lg-t"></span></div>`
-      + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} con el taller cerrado</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
+      + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} sin registrar en ningún cronómetro</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
   }
   $("d-more-s").textContent = `Ficha del vehículo · servicios, entrega y ${c.notes.length} nota(s)`;
   $("d-due").classList.toggle("bad", dp.late);
@@ -2021,8 +2050,10 @@ function tick(){
       live().forEach(c => {
         const el = document.querySelector(`.card[data-id="${c.id}"] .big`);
         if (!el) return;
-        const s = stateOf(c);
-        el.textContent = s === "done" ? short(totalMs(c)) : s === "free" ? hms(waitMs(c)) : hms(stageMs(c));
+        const r = relojVivo(c);
+        el.textContent = r.txt;
+        const cap = el.parentElement.querySelector(".cap");
+        if (cap) cap.textContent = r.cap;
       });
     } else {
       renderList();
@@ -2031,7 +2062,7 @@ function tick(){
   if (selected) {
     const c = cars.find(x => x.id === selected);
     if (c) {
-      $("d-hero-t").textContent = stateOf(c) === "done" ? short(totalMs(c)) : hms(stageMs(c));
+      $("d-hero-t").textContent = relojVivo(c).txt;
       $("d-hero-of").textContent = c.delivered
         ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
         : `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)}`;
@@ -2091,7 +2122,7 @@ $("d-primary").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const st = stateOf(c);
   if (st === "run") {
-    pause(c, true);
+    pause(c, false);   // pausa a mano; sólo "Se acabó el día" es overnight
     c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Pausado ${atStage(c.stage)} · ${short(stageMs(c))} trabajados.` });
   } else if (st === "free") {
     // Tomar el trabajo: quien lo toma queda registrado.
