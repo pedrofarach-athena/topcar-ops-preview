@@ -312,7 +312,11 @@ aside{
   display:inline-flex;align-items:center;gap:7px;background:var(--btn-bg);color:var(--btn-fg);
   border:1px solid var(--btn-bg);border-radius:999px;padding:8px 12px;font-size:12.5px
 }
-.nsub .tm{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.nsub .tm{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nsub.run{border-color:var(--run)}
+.nsub.run .tm{color:var(--run)}
+.nsub.off{opacity:.62}
+.nsub.off .tm{color:var(--ink-2)}
 .nosub{font-size:12.5px;color:var(--muted)}
 .btn.sm{padding:10px 12px;font-size:11.5px}
 .pickbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
@@ -358,6 +362,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .chg{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;
   background:var(--pause-bg);color:var(--pause);border:1px solid var(--pause);
   font-family:var(--disp);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+#d-remove{color:var(--late);align-self:flex-start}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 .btn.alt:hover{background:var(--chip-bg)}
 .rowbar .n{font-style:normal;color:var(--muted);font-size:10.5px;margin-left:6px}
@@ -727,6 +732,7 @@ header{max-width:100%}
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
         <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió · sacar del taller</button>
+        <button type="button" class="moreLink" id="d-remove">Eliminar este vehículo · se metió por error</button>
 
         <div class="sec">
           <div class="lbl">Servicios contratados</div>
@@ -753,6 +759,7 @@ header{max-width:100%}
         <div class="sec">
           <div class="lbl">Subetapa · una o varias</div>
           <div class="nowsubs" id="d-nowsubs"></div>
+          <div class="nowsubs" id="d-subs-done"></div>
           <button type="button" class="btn sm" id="d-subs-open">Elegir subetapas</button>
           <div class="pickbox" id="d-subs-box" hidden>
             <div class="subs" id="d-subs"></div>
@@ -1186,7 +1193,8 @@ function newCar(o){
     deliveredBy:null,
     changes:[],              // cambios de servicio pedidos a mitad de trabajo
     activeSubs:new Set(),    // subetapas activas ahora
-    subMs:{},                // ms acumulado por subetapa
+    subMs:{},                // ms acumulado por subetapa (cerrado)
+    subFrom:{},              // desde cuándo corre cada subetapa activa
     notes:o.notes ? o.notes.slice() : []
   };
   STAGES.forEach(s => { c.stageMs[s] = 0; c.waitMs[s] = 0; c.pauseMs[s] = 0; });
@@ -1235,15 +1243,29 @@ function timeline(c){
 function fecha(t){
   return new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
 }
-function subMs(c, name){
-  return (c.subMs[name]||0) + (c.activeSubs.has(name) ? liveDelta(c) : 0);
+/* Oscar: "quiero que cada subetapa tenga un cronómetro… que se resetee el reloj
+   en cada subetapa". Cada una arranca en 0 cuando se marca y se para al
+   quitarla. El reloj de la ETAPA, en cambio, no se resetea nunca.
+   Antes bank() le sumaba el tiempo del carro a TODAS las subetapas activas, así
+   que dos en paralelo cobraban las dos el rato entero. */
+function liveSub(c, name){
+  const from = c.subFrom ? c.subFrom[name] : null;
+  return (from && c.running) ? Date.now() - from : 0;
 }
+function subMs(c, name){
+  return (c.subMs[name]||0) + liveSub(c, name);
+}
+function bankSub(c, name){
+  const d = liveSub(c, name);
+  if (d) c.subMs[name] = (c.subMs[name]||0) + d;
+  if (c.subFrom) c.subFrom[name] = c.running ? Date.now() : null;
+}
+function bankAllSubs(c){ c.activeSubs.forEach(n => bankSub(c, n)); }
 function bank(c){                        // guarda el tiempo corrido
   const d = liveDelta(c);
   if (!d) return;
   c.stageMs[c.stage] = (c.stageMs[c.stage]||0) + d;
-  c.activeSubs.forEach(s => c.subMs[s] = (c.subMs[s]||0) + d);
-  c.runFrom = Date.now();
+  c.runFrom = Date.now();   // las subetapas llevan su propio reloj, ver bankSub
 }
 /* ESPERA: el carro terminó una etapa y nadie lo ha tomado todavía.
    Es tiempo muerto — normalmente donde se esconde la demora real. */
@@ -1316,17 +1338,20 @@ function claim(c, tech){
 }
 function start(c){
   bank(c); bankPause(c);
-  c.running = true; c.overnight = false; c.everStarted = true; c.runFrom = Date.now();
+  c.running = true;
+  if (!c.subFrom) c.subFrom = {};
+  c.activeSubs.forEach(n => { c.subFrom[n] = Date.now(); }); c.overnight = false; c.everStarted = true; c.runFrom = Date.now();
 }
 function pause(c, overnight){
-  bank(c);
-  c.running = false; c.runFrom = null; c.overnight = !!overnight;
+  bankAllSubs(c); bank(c);
+  c.running = false;
+  if (c.subFrom) c.activeSubs.forEach(n => { c.subFrom[n] = null; }); c.runFrom = null; c.overnight = !!overnight;
   c.pauseFrom = overnight ? null : Date.now();
 }
 /* TERMINAR: cierra la etapa, suelta el carro y empieza a contar la espera
    en la etapa siguiente hasta que alguien la tome. */
 function finishStage(c){
-  bank(c); bankWait(c); bankPause(c);
+  bankAllSubs(c); bank(c); bankWait(c); bankPause(c);
   const i = STAGES.indexOf(c.stage);
   c.stageLog.push({
     stage: c.stage, tech: c.claimedBy || c.tech,
@@ -1343,7 +1368,7 @@ function finishStage(c){
 }
 function moveTo(c, stage){
   if (c.stage === stage) return;
-  bank(c); bankWait(c); bankPause(c);
+  bankAllSubs(c); bank(c); bankWait(c); bankPause(c);
   /* Hay dos formas de salir de una etapa: terminarla o moverla a mano.
      Si sólo una deja huella, la hoja de vida miente por omisión. Se guarda
      el tiempo AÚN NO registrado, para no contarlo dos veces si el carro
@@ -1366,8 +1391,16 @@ function moveTo(c, stage){
 }
 function toggleSub(c, name){
   bank(c);
-  if (c.activeSubs.has(name)) c.activeSubs.delete(name);
-  else { c.activeSubs.add(name); if (!c.subMs[name]) c.subMs[name] = 0; }
+  if (!c.subFrom) c.subFrom = {};
+  if (c.activeSubs.has(name)) {
+    bankSub(c, name);              // cierra: queda visible cuánto duró
+    c.activeSubs.delete(name);
+    c.subFrom[name] = null;
+  } else {
+    c.activeSubs.add(name);
+    if (!c.subMs[name]) c.subMs[name] = 0;
+    c.subFrom[name] = c.running ? Date.now() : null;   // arranca en 0
+  }
 }
 function stateOf(c){
   if (c.stage === "Listo") return "done";
@@ -1860,9 +1893,19 @@ function renderSubs(c){
   $("d-nowsubs").innerHTML = active.length
     ? active.map(s => {
         const ms = subMs(c, s);
-        return `<span class="nsub">${esc(s)}${ms?`<span class="tm">${short(ms)}</span>`:""}</span>`;
+        // Corriendo se ve al segundo; Oscar quiere VER el reloj de la subetapa.
+        return `<span class="nsub run">${esc(s)}<span class="tm">${hms(ms)}</span></span>`;
       }).join("")
     : `<span class="nosub">Ninguna elegida todavía.</span>`;
+
+  /* Lo que ya se cerró: "cuando yo quite el lavado, ahí yo estoy viendo que
+     duró un minuto". Sin esto el tiempo se guarda y no se ve. */
+  const cerradas = Object.keys(c.subMs || {})
+    .filter(n => (c.subMs[n] || 0) > 0 && !c.activeSubs.has(n));
+  const done = $("d-subs-done");
+  if (done) done.innerHTML = cerradas.length
+    ? cerradas.map(n => `<span class="nsub off">${esc(n)}<span class="tm">${short(c.subMs[n])}</span></span>`).join("")
+    : "";
 
   $("d-subs-open").textContent = subsOpen ? "Listo" : (active.length ? "Cambiar subetapas" : "Elegir subetapas");
   $("d-subs-box").hidden = !subsOpen;
@@ -2151,6 +2194,18 @@ $("d-finish").addEventListener("click", () => {
 
 /* Entregar saca el carro del tablero: es la acción más fácil de tocar por
    error, así que siempre se puede deshacer. */
+/* Eliminar NO es entregar. Un carro entregado es trabajo hecho y cuenta en las
+   estadísticas; uno eliminado se metió por error y no debe contar en nada. Se
+   puede deshacer: borrar de un toque un carro con su historial no se perdona. */
+$("d-remove").addEventListener("click", () => {
+  const c = cars.find(x => x.id === selected); if (!c) return;
+  const i = cars.indexOf(c);
+  cars.splice(i, 1);
+  toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> eliminado · no cuenta en ninguna estadística`,
+        { label:"Deshacer", fn: () => { cars.splice(i, 0, c); toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> vuelve al taller`); } });
+  close(); paint();
+});
+
 $("d-deliver").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c || c.stage !== "Listo") return;
   deliver(c, station.tech || c.claimedBy || c.tech);
