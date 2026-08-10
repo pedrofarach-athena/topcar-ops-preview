@@ -2491,6 +2491,67 @@ $("m-save").addEventListener("click", () => {
   closeModal(); open(c.id); paint();
 });
 
+/* ══ GUARDAR EL DÍA ═════════════════════════════════════════════════════
+   Hasta ahora sólo se guardaban el tema y el área de la tablet: los carros
+   vivían únicamente en la página. Una recarga —la tablet se duerme, alguien
+   toca refrescar— y se perdían todos los cronómetros, el historial de etapas,
+   los tiempos de subetapa y los motivos de retraso del día entero.
+
+   OJO, y hay que decirlo claro: esto guarda en ESTA tablet. No sincroniza
+   entre tablets. Que el de pintura y el de preparación vean los mismos carros
+   necesita un servidor — eso es la versión de producción, no esto. */
+const SAVE_KEY = "topcar_estado_v1";
+
+function serializar(){
+  return JSON.stringify({
+    guardado: Date.now(),
+    cars: cars.map(c => ({
+      ...c,
+      arrived: +c.arrived,
+      due: +c.due,
+      delivered: c.delivered || null,
+      activeSubs: [...c.activeSubs],   // un Set no sobrevive a JSON
+    })),
+  });
+}
+
+function guardar(){
+  try { localStorage.setItem(SAVE_KEY, serializar()); } catch (e) {}
+}
+
+function restaurar(){
+  let raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+  try {
+    const d = JSON.parse(raw);
+    if (!Array.isArray(d.cars) || !d.cars.length) return false;
+    cars = d.cars.map(o => {
+      const c = newCar({
+        id:o.id, brand:o.brand, model:o.model, color:o.color, plate:o.plate,
+        client:o.client, phone:o.phone, tech:o.tech, skus:o.skus || [],
+        due:new Date(o.due), arrived:new Date(o.arrived), stage:o.stage,
+      });
+      Object.assign(c, o, {
+        arrived:new Date(o.arrived),
+        due:new Date(o.due),
+        activeSubs:new Set(o.activeSubs || []),
+      });
+      return c;
+    });
+    return true;
+  } catch (e) { return false; }
+}
+
+/* Se guarda después de cada acción. paint() corre tras todo lo que cambia algo,
+   así que es el sitio honesto para engancharlo. */
+const _paintOriginal = paint;
+paint = function(){ _paintOriginal.apply(this, arguments); guardar(); };
+
+if (restaurar()) {
+  toast("Se recuperó el trabajo de esta tablet · nada se perdió al recargar");
+}
+
 paint();
 tick();
 setInterval(tick, 1000);
