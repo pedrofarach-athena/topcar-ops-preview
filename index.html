@@ -329,6 +329,40 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
   .kpi .v{font-size:24px}
   .hero .t{font-size:44px}
 }
+
+/* ── v10: tomar / esperar / terminar, y tablets por área ── */
+.card.is-free{border-color:#c9922e;background:linear-gradient(180deg,#fffaf0,#fff)}
+.card.is-free .big{color:#b8801f}
+.station{margin-left:8px}
+#station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
+  border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+#station-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.endday{font:600 11px/1 var(--ui);letter-spacing:.06em;padding:9px 13px;margin-left:8px;border-radius:9px;
+  border:1px solid #c9922e;background:#fff8ec;color:#8a5d10;cursor:pointer}
+.stationbar{display:flex;align-items:center;gap:14px;padding:9px 20px;background:var(--ink);color:#fff}
+.stationbar .sb-a{font:700 13px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase}
+.stationbar .sb-n{font:600 11px/1 var(--ui);opacity:.85}
+.stationbar .sb-n.run{color:#8ff0b5}
+.stationbar .sb-h{margin-left:auto;font:400 11px/1 var(--ui);opacity:.6}
+.btn.fin{background:#0f7a3d;color:#fff;border-color:#0f7a3d}
+.btn.row{min-height:56px;font-size:15px}      /* dedos, no ratones */
+.ledger{display:flex;flex-direction:column;gap:2px}
+.lg{display:grid;grid-template-columns:1fr auto auto 84px;gap:10px;align-items:baseline;
+  padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}
+.lg:last-child{border-bottom:none}
+.lg-s{color:var(--ink)}
+.lg-w{font-variant-numeric:tabular-nums;font-weight:600}
+.lg-d{font-variant-numeric:tabular-nums;color:#b8801f;font-size:11px}
+.lg-t{color:var(--muted);font-size:11px;text-align:right}
+.lg.now{background:#f6f7f9;border-radius:6px;padding:6px 8px}
+.lg.tot{border-top:2px solid var(--line);border-bottom:none;font-weight:700}
+.lg.tot .lg-d{color:#a8341f}
+@media (max-width:1100px){            /* tablet */
+  .board{grid-template-columns:1fr!important}
+  .card{padding:16px}
+  .card .big{font-size:34px}
+  .btn.row{min-height:64px;font-size:17px}
+}
 </style>
 </head>
 <body>
@@ -348,8 +382,14 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
       <button type="button" id="v-board" class="on">Tablero</button>
       <button type="button" id="v-list">Lista</button>
     </div>
+    <div class="station" id="station-box">
+      <button type="button" id="station-btn" title="Esta tablet pertenece a un área">TODAS LAS ÁREAS</button>
+    </div>
+    <button type="button" class="endday" id="end-day" title="Pausa todos los cronómetros del taller">Se acabó el día</button>
     <div class="clockNow" id="now">—</div>
   </header>
+
+  <div class="stationbar" id="stationbar" hidden></div>
 
   <section class="kpis" id="kpis"></section>
 
@@ -424,6 +464,12 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
         </div>
 
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
+        <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
+
+        <div class="sec">
+          <div class="lbl">Tiempo por etapa · trabajado y muerto</div>
+          <div class="ledger" id="d-ledger"></div>
+        </div>
 
         <div class="sec">
           <div class="lbl">Etapa</div>
@@ -635,12 +681,17 @@ function newCar(o){
     runFrom:null,
     everStarted:false,
     overnight:false,
-    stageMs:{},              // ms de trabajo acumulado por etapa
+    stageMs:{},              // ms de TRABAJO acumulado por etapa
+    // Nadie asigna: el carro espera libre hasta que un técnico lo toma.
+    claimedBy:o.claimedBy || null,   // null = libre, nadie lo ha tomado
+    waitFrom:o.waitFrom || Date.now(),// desde cuándo espera en esta etapa
+    waitMs:{},               // ms de ESPERA acumulado por etapa (tiempo muerto)
+    stageLog:[],             // historial cerrado: {stage, tech, work, wait}
     activeSubs:new Set(),    // subetapas activas ahora
     subMs:{},                // ms acumulado por subetapa
     notes:o.notes ? o.notes.slice() : []
   };
-  STAGES.forEach(s => c.stageMs[s] = 0);
+  STAGES.forEach(s => { c.stageMs[s] = 0; c.waitMs[s] = 0; });
   return c;
 }
 
@@ -659,6 +710,25 @@ function bank(c){                        // guarda el tiempo corrido
   c.activeSubs.forEach(s => c.subMs[s] = (c.subMs[s]||0) + d);
   c.runFrom = Date.now();
 }
+/* ESPERA: el carro terminó una etapa y nadie lo ha tomado todavía.
+   Es tiempo muerto — normalmente donde se esconde la demora real. */
+function isWaiting(c){ return !c.claimedBy && c.stage !== "Listo"; }
+function liveWait(c){ return isWaiting(c) && c.waitFrom ? Date.now() - c.waitFrom : 0; }
+function waitMs(c){ return (c.waitMs[c.stage]||0) + liveWait(c); }
+function bankWait(c){
+  const d = liveWait(c);
+  if (!d) return;
+  c.waitMs[c.stage] = (c.waitMs[c.stage]||0) + d;
+  c.waitFrom = Date.now();
+}
+/* TOMAR: un técnico reclama el carro y arranca su cronómetro. */
+function claim(c, tech){
+  bankWait(c);
+  c.claimedBy = tech || c.tech;
+  c.tech = c.claimedBy;
+  c.waitFrom = null;
+  start(c);
+}
 function start(c){
   bank(c);
   c.running = true; c.overnight = false; c.everStarted = true; c.runFrom = Date.now();
@@ -667,13 +737,33 @@ function pause(c, overnight){
   bank(c);
   c.running = false; c.runFrom = null; c.overnight = !!overnight;
 }
+/* TERMINAR: cierra la etapa, suelta el carro y empieza a contar la espera
+   en la etapa siguiente hasta que alguien la tome. */
+function finishStage(c){
+  bank(c); bankWait(c);
+  const i = STAGES.indexOf(c.stage);
+  c.stageLog.push({
+    stage: c.stage, tech: c.claimedBy || c.tech,
+    work: c.stageMs[c.stage]||0, wait: c.waitMs[c.stage]||0, at: Date.now()
+  });
+  c.running = false; c.runFrom = null; c.overnight = false;
+  c.activeSubs.clear();
+  c.claimedBy = null;
+  if (i < STAGES.length - 1) {
+    c.stage = STAGES[i+1];
+    c.waitFrom = Date.now();
+    if (c.stage === STAGES[STAGES.length-1]) c.everStarted = true;
+  }
+}
 function moveTo(c, stage){
   if (c.stage === stage) return;
-  bank(c);
+  bank(c); bankWait(c);
   c.running = false; c.runFrom = null;   // la etapa nueva arranca en 0 y detenida
   c.overnight = false;
   c.stage = stage;
   c.activeSubs.clear();
+  c.claimedBy = null;
+  c.waitFrom = Date.now();
   if (stage === STAGES[STAGES.length-1]) { c.everStarted = true; }
 }
 function toggleSub(c, name){
@@ -684,8 +774,8 @@ function toggleSub(c, name){
 function stateOf(c){
   if (c.stage === "Listo") return "done";
   if (c.running) return "run";
+  if (!c.claimedBy) return "free";       // nadie lo ha tomado — esperando
   if (c.overnight) return "pause";
-  if (stageMs(c) === 0) return "idle";   // etapa nueva o vehículo recién entrado
   return "pause";
 }
 function stateLabel(c){
@@ -693,7 +783,7 @@ function stateLabel(c){
   if (s === "run") return "En trabajo";
   if (s === "pause") return c.overnight ? "Overnight" : "En pausa";
   if (s === "done") return "Listo";
-  return "Sin iniciar";
+  return "Libre · esperando";
 }
 function dueParts(c){
   let ms = c.due - Date.now();
@@ -770,6 +860,25 @@ let cars = [
   c107.stageMs = { "Recepción":h(0.4), "Preparación":h(3.1), "En proceso":h(8.9), "Control de calidad":h(1.0), "Listo":0 };
   c107.subMs = { "Lavado":h(1.2), "Aplicación de Modesta":h(3.3), "Curado de Modesta con lámparas IR":h(2.5), "Instalando":h(1.8), "Revisado y listo":h(0.8) };
   c107.everStarted = true;
+
+  // Quien está trabajando un carro ya lo tomó; solo los intactos quedan libres.
+  cars.forEach(c => { if (c.running || c.overnight || c.stage === "Listo") c.claimedBy = c.tech; });
+
+  // Tiempo muerto real de días anteriores — donde se esconde la demora.
+  c103.waitMs = { "Recepción":h(0.4), "Preparación":h(1.2), "En proceso":h(0.9), "Control de calidad":0, "Listo":0 };
+  c105.waitMs = { "Recepción":h(0.6), "Preparación":h(2.8), "En proceso":h(3.4), "Control de calidad":0, "Listo":0 };
+  c106.waitMs = { "Recepción":h(0.3), "Preparación":h(1.1), "En proceso":h(2.2), "Control de calidad":h(0.7), "Listo":0 };
+  // Historial cerrado para que el desglose por etapa tenga qué mostrar.
+  c103.stageLog = [
+    { stage:"Recepción", tech:"Luis M.", work:h(0.6), wait:h(0.4), at: now - 30*H },
+    { stage:"Preparación", tech:"Ana R.", work:h(4.2), wait:h(1.2), at: now - 20*H }
+  ];
+  c105.stageLog = [
+    { stage:"Recepción", tech:"Luis M.", work:h(0.7), wait:h(0.6), at: now - 60*H },
+    { stage:"Preparación", tech:"Ana R.", work:h(6.5), wait:h(2.8), at: now - 40*H }
+  ];
+  // Los que nadie ha tomado llevan rato esperando.
+  cars.forEach(c => { if (!c.claimedBy) c.waitFrom = now - 35*60000; });
 })();
 
 let selected = null;
@@ -779,6 +888,63 @@ let showAllSubs = false;
 let subsOpen = false;
 
 /* ---------- filtering ---------- */
+/* ── TABLET POR ÁREA ─────────────────────────────────────────────────────
+   Cada área tiene su propia tablet. La tablet recuerda su área, muestra
+   solo lo que ese puesto necesita y agranda los botones para dedos. */
+const station = { area: null, tech: null };
+try {
+  const saved = JSON.parse(localStorage.getItem("topcar_station") || "null");
+  if (saved && STAGES.includes(saved.area)) { station.area = saved.area; station.tech = saved.tech || null; }
+} catch (e) { /* primera vez */ }
+
+function saveStation(){
+  try { localStorage.setItem("topcar_station", JSON.stringify(station)); } catch (e) {}
+}
+function setStation(area, tech){
+  station.area = area; station.tech = tech || null;
+  saveStation(); renderStationBar(); paint();
+}
+function renderStationBar(){
+  const btn = $("station-btn"), bar = $("stationbar");
+  if (!btn || !bar) return;
+  btn.textContent = station.area ? `${station.area.toUpperCase()}${station.tech ? " · " + station.tech : ""}` : "TODAS LAS ÁREAS";
+  btn.classList.toggle("on", !!station.area);
+  if (!station.area) { bar.hidden = true; return; }
+  const mine = cars.filter(c => c.stage === station.area);
+  const free = mine.filter(c => !c.claimedBy).length;
+  const run  = mine.filter(c => c.running).length;
+  bar.hidden = false;
+  bar.innerHTML = `<span class="sb-a">${esc(station.area)}</span>
+    <span class="sb-n">${free} para tomar</span>
+    <span class="sb-n run">${run} en trabajo</span>
+    <span class="sb-h">Esta tablet muestra solo tu área. Toca un carro para tomarlo.</span>`;
+}
+
+/* Fin del día: congela todo. Nada corre de noche. */
+function endDay(){
+  let n = 0;
+  cars.forEach(c => { if (c.running) { pause(c, true); n++; }
+                      if (isWaiting(c)) { bankWait(c); c.waitFrom = null; } });
+  return n;
+}
+/* A las 8:15 el taller abre y los cronómetros vuelven solos. */
+const SHOP_OPEN_H = 8, SHOP_OPEN_M = 15;
+let lastResumeDay = null;
+function autoResume(){
+  const now = new Date();
+  const key = now.toDateString();
+  if (lastResumeDay === key) return;
+  if (now.getHours() > SHOP_OPEN_H || (now.getHours() === SHOP_OPEN_H && now.getMinutes() >= SHOP_OPEN_M)) {
+    lastResumeDay = key;
+    let n = 0;
+    cars.forEach(c => {
+      if (c.overnight && c.claimedBy) { start(c); n++; }
+      if (isWaiting(c) && !c.waitFrom) c.waitFrom = Date.now();
+    });
+    if (n) paint();
+  }
+}
+
 function visible(){
   const q = ($("q").value || "").trim().toLowerCase();
   if (!q) return cars;
@@ -788,13 +954,15 @@ function visible(){
 /* ---------- render: KPIs ---------- */
 function renderKpis(){
   const running = cars.filter(c => stateOf(c) === "run").length;
-  const idle    = cars.filter(c => stateOf(c) === "idle").length;
+  const free    = cars.filter(c => stateOf(c) === "free").length;
   const paused  = cars.filter(c => stateOf(c) === "pause").length;
   const late    = cars.filter(c => dueParts(c).late && c.stage !== "Listo").length;
+  // Tiempo muerto vivo: lo que ahora mismo se acumula sin que nadie trabaje.
+  const deadNow = cars.filter(c => stateOf(c)==="free").reduce((a,c)=>a+waitMs(c),0);
   const items = [
     ["En taller", cars.length, "vehículos activos", ""],
     ["En trabajo", running, "cronómetro corriendo", "run"],
-    ["Detenidos", paused + idle, `${idle} sin iniciar · ${paused} en pausa`, paused+idle ? "pause" : ""],
+    ["Esperando", free, free ? `nadie los ha tomado · ${short(deadNow)} perdidos` : "todos tomados", free ? "pause" : ""],
     ["Fuera de promesa", late, "pasaron la entrega", late ? "late" : ""]
   ];
   $("kpis").innerHTML = items.map(([k,v,s,cls]) =>
@@ -805,14 +973,16 @@ function renderKpis(){
 /* ---------- render: board ---------- */
 function cardHtml(c){
   const st = stateOf(c);
-  const cls = st === "run" ? "is-run" : st === "pause" ? "is-pause" : dueParts(c).late && c.stage!=="Listo" ? "is-late" : "";
+  const cls = st === "run" ? "is-run" : st === "free" ? "is-free" : st === "pause" ? "is-pause" : dueParts(c).late && c.stage!=="Listo" ? "is-late" : "";
   const subs = [...c.activeSubs];
   const done = st === "done";
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
     <div class="name">${esc(c.brand)} ${esc(c.model)}</div>
     <div class="sub">${esc(c.color)} · ${esc(c.plate)}</div>
-    <div class="big">${done ? short(totalMs(c)) : hms(stageMs(c))}</div>
-    <div class="cap">${done ? "total en el taller" : "en " + esc(c.stage.toLowerCase())}</div>
+    <div class="big">${done ? short(totalMs(c)) : st === "free" ? hms(waitMs(c)) : hms(stageMs(c))}</div>
+    <div class="cap">${done ? "total en el taller"
+      : st === "free" ? "esperando que alguien lo tome"
+      : "en " + esc(c.stage.toLowerCase())}</div>
     <div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
                     : `<span class="tag sub">Sin subetapa</span>`}
@@ -822,14 +992,15 @@ function cardHtml(c){
       <span class="pill ${st==="run"?"run":st==="pause"?"pause":st==="done"?"":""}">
         <span class="dot"></span>${esc(stateLabel(c))}
       </span>
-      <span class="who">${esc(c.tech)}</span>
+      <span class="who">${c.claimedBy ? esc(c.claimedBy) : "sin tomar"}</span>
     </div>
   </div>`;
 }
 
 function renderBoard(){
   const rows = visible();
-  $("board").innerHTML = STAGES.map(s => {
+  const cols = station.area ? [station.area] : STAGES;   // tablet de área: solo lo suyo
+  $("board").innerHTML = cols.map(s => {
     const list = rows.filter(c => c.stage === s);
     return `<div class="col">
       <div class="col-h"><span>${s}</span><em>${list.length}</em></div>
@@ -957,8 +1128,11 @@ function open(id){
   const hero = $("d-hero");
   hero.classList.toggle("is-run", st === "run");
   hero.classList.toggle("is-pause", st === "pause");
-  $("d-hero-lbl").textContent = st === "done" ? "Tiempo total de trabajo" : `Tiempo trabajado en ${c.stage}`;
-  $("d-hero-t").textContent = st === "done" ? short(totalMs(c)) : hms(stageMs(c));
+  $("d-hero-lbl").textContent = st === "done" ? "Tiempo total de trabajo"
+    : st === "free" ? `Esperando en ${c.stage} — nadie lo ha tomado`
+    : `Tiempo trabajado en ${c.stage}`;
+  $("d-hero-t").textContent = st === "done" ? short(totalMs(c))
+    : st === "free" ? hms(waitMs(c)) : hms(stageMs(c));
   const pill = $("d-pill");
   pill.className = "pill " + (st==="run"?"run":st==="pause"?"pause":"");
   pill.innerHTML = `<span class="dot"></span>${stateLabel(c)}`;
@@ -969,24 +1143,49 @@ function open(id){
   dueEl.textContent = dp.late ? `Pasó la entrega por ${dueText(c).replace("−","")}` : `Faltan ${dueText(c)} para la entrega`;
 
   const prim = $("d-primary");
+  const fin = $("d-finish");
   if (st === "run") {
-    prim.textContent = "Overnight · pausar cronómetro";
+    prim.textContent = "Pausar cronómetro";
     prim.className = "btn hold row";
   } else if (st === "done") {
     prim.textContent = "Vehículo listo";
     prim.className = "btn row";
-  } else if (stageMs(c) === 0) {
-    prim.textContent = `Iniciar trabajo en ${c.stage}`;
+  } else if (st === "free") {
+    prim.textContent = `Tomar este trabajo · ${c.stage}`;
     prim.className = "btn go row";
   } else {
-    prim.textContent = "Reanudar trabajo";
+    prim.textContent = "Continuar trabajo";
     prim.className = "btn go row";
   }
   prim.disabled = st === "done";
+  // Terminar cierra la etapa y suelta el carro para la siguiente área.
+  if (fin) {
+    fin.hidden = (st === "done" || st === "free");
+    fin.textContent = `Terminar ${c.stage.toLowerCase()} → ${STAGES[STAGES.indexOf(c.stage)+1] || ""}`;
+  }
 
   renderStage(c);
   renderSubs(c);
 
+  // El historial: lo trabajado contra lo esperado, etapa por etapa.
+  const led = $("d-ledger");
+  if (led) {
+    const rows = c.stageLog.map(l => `<div class="lg">
+        <span class="lg-s">${esc(l.stage)}</span>
+        <span class="lg-w">${short(l.work)}</span>
+        <span class="lg-d">${l.wait ? "esperó " + short(l.wait) : "—"}</span>
+        <span class="lg-t">${esc(l.tech||"")}</span>
+      </div>`).join("");
+    const cur = c.stage !== "Listo" ? `<div class="lg now">
+        <span class="lg-s">${esc(c.stage)}</span>
+        <span class="lg-w">${short(stageMs(c))}</span>
+        <span class="lg-d">${waitMs(c) ? "esperó " + short(waitMs(c)) : "—"}</span>
+        <span class="lg-t">${esc(c.claimedBy||"sin tomar")}</span>
+      </div>` : "";
+    const tw = c.stageLog.reduce((a,l)=>a+l.wait,0) + waitMs(c);
+    led.innerHTML = (rows + cur || `<div class="lg"><span class="lg-s">Sin etapas cerradas</span></div>`)
+      + (tw ? `<div class="lg tot"><span class="lg-s">Tiempo muerto total</span><span class="lg-w"></span><span class="lg-d">${short(tw)}</span><span class="lg-t"></span></div>` : "");
+  }
   $("d-more-s").textContent = `Ficha del vehículo · servicios, entrega y ${c.notes.length} nota(s)`;
   $("d-due").classList.toggle("bad", dp.late);
   $("d-due-v").textContent = dueText(c);
@@ -1013,10 +1212,10 @@ function paint(){
     $("board").hidden = view !== "board";
     $("list").hidden  = view !== "list";
     if (view === "board") renderBoard(); else renderList();
-    const idle = cars.filter(c => stateOf(c)==="idle").length;
-    $("ops-hint").textContent = idle
-      ? `${idle} vehículo(s) entraron y esperan que alguien pulse Iniciar. El cronómetro arranca en 0:00:00.`
-      : `Cada etapa cuenta su propio tiempo desde 0. Overnight pausa; Reanudar lo levanta a mano.`;
+    const freeN = cars.filter(c => stateOf(c)==="free").length;
+    $("ops-hint").textContent = freeN
+      ? `${freeN} vehículo(s) esperando que alguien los tome. Ese tiempo se está contando.`
+      : `Cada etapa cuenta su propio tiempo desde 0. Terminar suelta el carro para la siguiente área.`;
   } else {
     renderMgmt();
   }
@@ -1024,6 +1223,7 @@ function paint(){
 
 function tick(){
   $("now").textContent = new Date().toLocaleTimeString("es-DO",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  autoResume();
   if (tab === "ops") {
     if (view === "board") {
       cars.forEach(c => {
@@ -1060,17 +1260,53 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 
 $("d-x").addEventListener("click", close);
 
+/* Elegir el área de esta tablet (y quién la usa). */
+$("station-btn").addEventListener("click", () => {
+  const areas = STAGES.filter(s => s !== "Listo");
+  const opts = areas.map((a,i) => `${i+1}. ${a}`).join("\n");
+  const pick = prompt(`¿A qué área pertenece esta tablet?\n\n${opts}\n0. Todas las áreas (gerencia)`, station.area ? String(areas.indexOf(station.area)+1) : "0");
+  if (pick === null) return;
+  const n = parseInt(pick, 10);
+  if (n === 0) { setStation(null, null); return; }
+  const area = areas[n-1];
+  if (!area) return;
+  const who = prompt(`¿Quién trabaja en ${area}?\n\n${TECHS.map((x,i)=>`${i+1}. ${x}`).join("\n")}`, "1");
+  const tech = TECHS[parseInt(who,10)-1] || null;
+  setStation(area, tech);
+});
+
+/* Se acabó el día: nada corre de noche. */
+$("end-day").addEventListener("click", () => {
+  const n = endDay();
+  paint();
+  alert(n ? `${n} cronómetro(s) pausados. Vuelven solos a las 8:15 a. m.`
+          : "No había cronómetros corriendo.");
+});
+
 $("d-primary").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const st = stateOf(c);
   if (st === "run") {
     pause(c, true);
-    c.notes.push({ at:Date.now(), who:c.tech, text:`Overnight en ${c.stage}. Cronómetro pausado en ${short(stageMs(c))}.` });
+    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Pausado en ${c.stage} · ${short(stageMs(c))} trabajados.` });
+  } else if (st === "free") {
+    // Tomar el trabajo: quien lo toma queda registrado.
+    const who = station.tech || c.tech;
+    claim(c, who);
+    c.notes.push({ at:Date.now(), who, stage:c.stage, text:`${who} tomó el trabajo en ${c.stage}.` });
   } else if (st !== "done") {
-    const first = !c.everStarted;
     start(c);
-    c.notes.push({ at:Date.now(), who:c.tech, text:first ? `Trabajo iniciado en ${c.stage}.` : `Trabajo reanudado en ${c.stage}.` });
+    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Trabajo reanudado en ${c.stage}.` });
   }
+  open(c.id); paint();
+});
+
+$("d-finish").addEventListener("click", () => {
+  const c = cars.find(x => x.id === selected); if (!c) return;
+  const from = c.stage, worked = stageMs(c), who = c.claimedBy || c.tech;
+  finishStage(c);
+  c.notes.push({ at:Date.now(), who, stage:from,
+    text:`${from} terminada en ${short(worked)}. Libre para ${c.stage}.` });
   open(c.id); paint();
 });
 
