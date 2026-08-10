@@ -927,6 +927,11 @@ const CATALOG = Object.fromEntries(Object.entries(SHOP.services).map(([k,v]) =>
    servicios, la lista de subetapas y la mezcla de servicios.) */
 const SKU_FAMILY = Object.fromEntries(
   Object.entries(SHOP.services).flatMap(([fam, def]) => def.skus.map(sku => [sku, fam])));
+/* Todas las subetapas del taller, sin repetir, en el orden en que aparecen
+   en el catálogo. (Faltaba: rompía el selector de subetapas — o sea, la
+   acción que un técnico hace todos los días — y el panel de Gerencia.) */
+const ALL_SUBS = [...new Set(
+  Object.values(SHOP.services).flatMap(v => v.steps.map(s => s[0])))];
 const TECHS = ["Luis M.","Ana R.","Carlos P.","María G.","Equipo A","Equipo B","Diego S."];
 
 /* ---------- helpers ---------- */
@@ -1714,7 +1719,7 @@ function renderMgmt(){
 
   const al = live().filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="free")
     .map(c => `<div class="note"><span class="w">${esc(c.plate)} · ${esc(c.tech)}</span>
-      ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} en ${esc(c.stage)} · entrega ${dueText(c)}</div>`);
+      ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} ${esc(atStage(c.stage))} · entrega ${dueText(c)}</div>`);
   $("alerts").innerHTML = al.join("") || `<div class="note">Todo dentro de lo esperado.</div>`;
 }
 
