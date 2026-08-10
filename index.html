@@ -28,7 +28,7 @@
   --ink:#111113;
   --ink-2:#3F3F46;
   --muted:#71717A;
-  --line:#E1E1E5;
+  --line:#D7D7DD;
   --line-2:rgba(17,17,19,.08);
   --run:#15803D;   --run-bg:#DCFCE7;   --run-hot:#16A34A;
   --pause:#B45309; --pause-bg:#FEF3C7; --pause-hot:#D97706;
@@ -36,7 +36,18 @@
   --idle:#52525B;  --idle-bg:#E4E4E7;
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);
   --btn-bg:#111113; --btn-fg:#FFFFFF;      /* primario: oscuro sobre claro */
+  --btn-bg-hi:#3F3F46;
   --chip-bg:#EFEFF2;
+  --track:rgba(17,17,19,.10);
+  --on-accent:#FFFFFF;
+  /* La barra superior es SIEMPRE oscura, en los dos temas.
+     Por eso tiene tokens propios que NO se invierten: si usara los
+     del fondo de página, en modo oscuro quedaría negro sobre negro. */
+  --rail-ink:#FAFAFA;
+  --rail-dim:#A1A1AA;
+  --rail-line:#3A3A40;
+  --rail-on-bg:#FAFAFA;
+  --rail-on-fg:#0A0A0B;
 }
 :root[data-theme="dark"]{
   --black:#000000;
@@ -48,17 +59,23 @@
   --ink:#FAFAFA;
   --ink-2:#D4D4D8;
   --muted:#8B8B93;
-  --line:#27272A;
-  --line-2:rgba(255,255,255,.09);
+  --line:#44444C;                          /* más marcado: en oscuro los bordes se perdían */
+  --line-2:rgba(255,255,255,.16);
   --run:#4ADE80;   --run-bg:rgba(34,197,94,.14);   --run-hot:#22C55E;
   --pause:#FBBF24; --pause-bg:rgba(245,158,11,.14); --pause-hot:#F59E0B;
   --late:#F87171;  --late-bg:rgba(239,68,68,.14);   --late-hot:#EF4444;
   --idle:#A1A1AA;  --idle-bg:rgba(255,255,255,.06);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.45);
   --btn-bg:#FAFAFA; --btn-fg:#0A0A0B;      /* primario: claro sobre oscuro */
+  --btn-bg-hi:#D4D4D8;
   --chip-bg:#232327;
+  --track:rgba(255,255,255,.14);
+  --on-accent:#0A0A0B;
+  /* Los tokens --rail-* NO se redefinen aquí a propósito:
+     la barra es oscura en ambos temas, así que su texto no debe cambiar. */
 }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
 html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border-radius:8px}
@@ -68,26 +85,26 @@ button{cursor:pointer;border-radius:8px}
 /* ---------- Top rail ---------- */
 .rail{
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  padding:12px 20px;background:var(--rail);color:var(--cream);
+  padding:12px 20px;background:var(--rail);color:var(--rail-ink);
 }
 .logo{display:flex;align-items:center;gap:12px;min-width:0}
-.logo .mark{background:#000;border:1px solid var(--rail-2);padding:8px 12px;border-radius:8px;display:flex}
+.logo .mark{background:#000;border:1px solid var(--rail-line);padding:8px 12px;border-radius:8px;display:flex}
 .logo img{height:30px;width:auto;display:block}
 .logo b{font-family:var(--disp);font-size:16px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;white-space:nowrap}
-.logo span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.logo span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail-dim);margin-top:2px}
 .rail-sp{flex:1}
 .rail input{
-  background:var(--rail-2);border:1px solid var(--line-2);border-radius:8px;
-  padding:9px 12px;color:var(--cream);min-width:200px;
+  background:var(--rail-2);border:1px solid var(--rail-line);border-radius:8px;
+  padding:9px 12px;color:var(--rail-ink);min-width:200px;
 }
-.rail input::placeholder{color:var(--muted)}
-.seg{display:flex;background:var(--rail-2);border:1px solid #322C25;border-radius:8px;overflow:hidden}
+.rail input::placeholder{color:var(--rail-dim)}
+.seg{display:flex;background:var(--rail-2);border:1px solid var(--rail-line);border-radius:8px;overflow:hidden}
 .seg button{
-  border:0;background:transparent;color:#B9AE9D;padding:9px 14px;border-radius:0;
+  border:0;background:transparent;color:var(--rail-dim);padding:9px 14px;border-radius:0;
   font-family:var(--disp);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
 }
-.seg button.on{background:var(--cream);color:var(--black)}
-.clockNow{font-family:var(--mono);font-size:13px;color:#B9AE9D;white-space:nowrap}
+.seg button.on{background:var(--rail-on-bg);color:var(--rail-on-fg)}
+.clockNow{font-family:var(--mono);font-size:13px;color:var(--rail-dim);white-space:nowrap}
 
 /* ---------- KPI strip ---------- */
 .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:16px 20px 0}
@@ -130,8 +147,8 @@ main{padding:16px 20px 28px;min-width:0}
   background:var(--card);border:1px solid var(--line);border-left:4px solid var(--idle);
   border-radius:10px;padding:12px;cursor:pointer;transition:transform .08s ease,box-shadow .08s ease;
 }
-.card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(23,19,15,.10)}
-.card.sel{outline:2px solid var(--black);outline-offset:1px}
+.card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.card.sel{outline:2px solid var(--ink);outline-offset:1px}
 .card.is-run{border-left-color:var(--run)}
 .card.is-pause{border-left-color:var(--pause)}
 .card.is-late{border-left-color:var(--late)}
@@ -146,7 +163,7 @@ main{padding:16px 20px 28px;min-width:0}
 .card .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .tag{
   font-family:var(--disp);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  padding:3px 7px;border:1px solid var(--line);border-radius:999px;color:var(--ink-2);background:rgba(214,201,182,.28)
+  padding:3px 7px;border:1px solid var(--line);border-radius:999px;color:var(--ink-2);background:var(--chip-bg)
 }
 .tag.sub{border-style:dashed}
 .pill{
@@ -166,13 +183,13 @@ main{padding:16px 20px 28px;min-width:0}
 .tablewrap{border:1px solid var(--line);border-radius:12px;overflow:auto;background:var(--card)}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
 th{
-  position:sticky;top:0;background:#F5EFE5;text-align:left;padding:12px;
+  position:sticky;top:0;background:var(--chip-bg);text-align:left;padding:12px;
   font-family:var(--disp);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
   border-bottom:1px solid var(--line)
 }
 td{padding:11px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
 tbody tr{cursor:pointer}
-tbody tr:hover{background:rgba(214,201,182,.22)}
+tbody tr:hover{background:var(--chip-bg)}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .strong{font-family:var(--disp);font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 
@@ -182,21 +199,21 @@ tbody tr:hover{background:rgba(214,201,182,.22)}
 .box h2{margin:0 0 12px;font-family:var(--disp);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
 .rowbar{display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px}
 .rowbar .lbl{display:flex;justify-content:space-between;gap:8px}
-.meter{height:6px;background:rgba(23,19,15,.10);border-radius:999px;overflow:hidden;margin-top:5px}
-.meter i{display:block;height:100%;background:var(--black)}
+.meter{height:6px;background:var(--track);border-radius:999px;overflow:hidden;margin-top:5px}
+.meter i{display:block;height:100%;background:var(--ink)}
 .rowbar .num{font-family:var(--mono);text-align:right;color:var(--ink-2)}
 
 /* ---------- Drawer ---------- */
 aside{
-  background:#F7F1E7;border-left:1px solid var(--line);display:none;
+  background:var(--card);border-left:1px solid var(--line);display:none;
   flex-direction:column;min-height:0;max-height:100vh;position:sticky;top:0;overflow:auto
 }
 .wrap.open aside{display:flex}
-.d-h{background:var(--rail);color:var(--cream);padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.d-h{background:var(--rail);color:var(--rail-ink);padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .d-h h2{margin:0;font-family:var(--disp);font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
-.d-h .c{font-size:12px;color:#B9AE9D;margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
-.d-h .p{font-family:var(--mono);font-size:11px;color:#8B8072;margin-top:8px}
-.x{background:transparent;border:0;color:#9A8F80;font-size:24px;line-height:1;padding:2px 6px}
+.d-h .c{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
+.d-h .p{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+.x{background:transparent;border:0;color:var(--muted);font-size:24px;line-height:1;padding:2px 6px}
 .d-b{padding:18px;display:flex;flex-direction:column;gap:18px}
 
 .hero{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center}
@@ -214,8 +231,8 @@ aside{
   font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
 }
 .btn:hover{background:var(--card)}
-.btn.go{background:var(--run);border-color:var(--run);color:#fff}
-.btn.hold{background:var(--pause);border-color:var(--pause);color:#fff}
+.btn.go{background:var(--run);border-color:var(--run);color:var(--on-accent)}
+.btn.hold{background:var(--pause);border-color:var(--pause);color:var(--on-accent)}
 .btn.row{display:flex;align-items:center;justify-content:center;gap:8px}
 .act2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
@@ -234,9 +251,9 @@ aside{
 }
 .step .tm{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .step.done{opacity:.75}
-.step.done .n{background:var(--black);color:var(--cream)}
-.step.now{border-color:var(--black);box-shadow:inset 0 0 0 1px var(--black)}
-.step.now .n{background:var(--run);color:#fff}
+.step.done .n{background:var(--btn-bg);color:var(--btn-fg)}
+.step.now{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.step.now .n{background:var(--run);color:var(--on-accent)}
 .step.now .tm{color:var(--run);font-weight:600}
 
 .subs{display:flex;flex-wrap:wrap;gap:6px}
@@ -245,8 +262,8 @@ aside{
   font-size:12px;text-align:left;display:inline-flex;align-items:center;gap:7px
 }
 .sbtn .tm{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
-.sbtn.on{background:var(--black);color:var(--cream);border-color:var(--black)}
-.sbtn.on .tm{color:#C3B8A6}
+.sbtn.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
+.sbtn.on .tm{color:var(--btn-fg);opacity:.72}
 .sbtn.mine{border-color:var(--ink-2)}
 .moreLink{background:transparent;border:0;color:var(--ink-2);font-size:12px;text-decoration:underline;padding:4px 0;text-align:left}
 
@@ -270,10 +287,10 @@ aside{
 .selbig:focus{outline:2px solid var(--ink-2);outline-offset:-1px}
 .nowsubs{display:flex;flex-wrap:wrap;gap:6px}
 .nsub{
-  display:inline-flex;align-items:center;gap:7px;background:var(--black);color:var(--cream);
-  border:1px solid var(--black);border-radius:999px;padding:8px 12px;font-size:12.5px
+  display:inline-flex;align-items:center;gap:7px;background:var(--btn-bg);color:var(--btn-fg);
+  border:1px solid var(--btn-bg);border-radius:999px;padding:8px 12px;font-size:12.5px
 }
-.nsub .tm{font-family:var(--mono);font-size:10.5px;color:#C3B8A6}
+.nsub .tm{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
 .nosub{font-size:12.5px;color:var(--muted)}
 .btn.sm{padding:10px 12px;font-size:11.5px}
 .pickbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
@@ -301,15 +318,36 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
   padding:13px 20px;border-radius:10px;display:inline-flex;align-items:center;gap:9px;
   font-family:var(--disp);font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
 }
-.newbtn:hover{background:#241F1A}
+.newbtn:hover{background:var(--btn-bg-hi)}
 .newbtn .plus{font-family:var(--mono);font-size:17px;line-height:1}
 
-.modal{position:fixed;inset:0;z-index:60;background:rgba(15,12,10,.55);display:flex;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto}
+/* Aviso flotante: al terminar una etapa el carro se mueve, y hay que
+   decir A DÓNDE se movió. Sin esto el vehículo "desaparece". */
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:90;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:14px;
+  background:var(--btn-bg);color:var(--btn-fg);border-radius:10px;
+  padding:11px 14px;box-shadow:var(--shadow);max-width:min(92vw,560px);
+  font-size:13.5px;animation:tin .18s ease}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.toast b{font-weight:700}
+.toast button{border:1px solid currentColor;background:transparent;color:inherit;
+  border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+.chg{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;
+  background:var(--pause-bg);color:var(--pause);border:1px solid var(--pause);
+  font-family:var(--disp);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn.alt:hover{background:var(--chip-bg)}
+.chglog{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.chglog > .lbl{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.chglog .cg{border-left:2px solid var(--pause);padding:5px 0 5px 9px;font-size:12px;color:var(--ink-2)}
+.chglog .cg em{display:block;font-style:normal;color:var(--muted);font-size:11px;margin-top:2px}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto}
 .modal[hidden]{display:none}
 .sheet{width:min(680px,100%);background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35)}
-.sheet-h{background:var(--rail);color:var(--cream);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sheet-h{background:var(--rail);color:var(--rail-ink);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .sheet-h h3{margin:0;font-family:var(--disp);font-size:18px;letter-spacing:.1em;text-transform:uppercase}
-.sheet-h p{margin:4px 0 0;font-size:12px;color:#9A8F80}
+.sheet-h p{margin:4px 0 0;font-size:12px;color:var(--muted)}
 .sheet-b{padding:20px;display:flex;flex-direction:column;gap:18px}
 .sheet-f{padding:16px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:var(--card)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -331,7 +369,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .pk{
   border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 13px;font-size:12.5px;
 }
-.pk.on{background:var(--black);border-color:var(--black);color:var(--cream)}
+.pk.on{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
 .tipbox{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--ink-2);line-height:1.5}
 
 @media (max-width:720px){
@@ -371,7 +409,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .stationbar .sb-n{font:600 11px/1 var(--ui);opacity:.85}
 .stationbar .sb-n.run{color:var(--run)}
 .stationbar .sb-h{margin-left:auto;font:400 11px/1 var(--ui);opacity:.6}
-.btn.fin{background:var(--run-hot);color:#fff;border-color:var(--run-hot)}
+.btn.fin{background:var(--run-hot);color:var(--on-accent);border-color:var(--run-hot)}
 .btn.row{min-height:56px;font-size:15px}      /* dedos, no ratones */
 .ledger{display:flex;flex-direction:column;gap:2px}
 .lg{display:grid;grid-template-columns:1fr auto auto 84px;gap:10px;align-items:baseline;
@@ -529,6 +567,7 @@ header{max-width:100%}
     <div class="seg">
       <button type="button" id="v-board" class="on">Tablero</button>
       <button type="button" id="v-list">Lista</button>
+      <button type="button" id="v-done">Entregados</button>
     </div>
     <button type="button" class="themebtn" id="theme-btn" aria-label="Cambiar tema">
       <span id="theme-ico">◐</span>
@@ -558,6 +597,7 @@ header{max-width:100%}
           <p class="hint" id="ops-hint"></p>
         </div>
         <div id="board" class="board"></div>
+        <div id="done" class="tablewrap" hidden></div>
         <div id="list" class="tablewrap" hidden>
           <table>
             <thead>
@@ -626,6 +666,14 @@ header{max-width:100%}
 
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
+        <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió · sacar del taller</button>
+
+        <div class="sec">
+          <div class="lbl">Servicios contratados</div>
+          <div class="chips" id="d-svc" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          <button type="button" class="btn alt row" id="d-svc-edit">Cambiar lo que pidió el cliente</button>
+          <div class="chglog" id="d-chg"></div>
+        </div>
 
         <div class="sec">
           <div class="lbl">Tiempo por etapa · trabajando y esperando</div>
@@ -659,11 +707,6 @@ header{max-width:100%}
               </div>
             </div>
 
-            <div class="sec">
-              <div class="lbl">Servicios contratados</div>
-              <div class="chips" id="d-svc" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-              <button type="button" class="moreLink" id="d-svc-edit">Cambiar servicios · el cliente pidió otra cosa</button>
-            </div>
 
             <div class="sec">
               <div class="lbl">Responsable</div>
@@ -838,13 +881,18 @@ const SHOP = {
   targetsConfirmed: false,
   /* Cuándo avisar. Estos umbrales son la diferencia entre un reporte y
      una intervención. */
-  alerts: { overPct: 25, unclaimedMin: 30, promiseRiskH: 4 }
+  alerts: { overPct: 25, unclaimedMin: 30, promiseRiskH: 4, pickupH: 4 }
 };
 
 /* ── Derivado de la configuración. Nada de esto se escribe a mano. ── */
 const STAGES = SHOP.stages.map(s => s.name);
 const CATALOG = Object.fromEntries(Object.entries(SHOP.services).map(([k,v]) =>
   [k, { skus: v.skus, subs: v.steps.map(s => s[0]) }]));
+/* SKU -> familia de servicio. Se deriva del catálogo: si Oscar agrega un
+   SKU, esto se actualiza solo. (Faltaba: era lo que rompía el cambio de
+   servicios, la lista de subetapas y la mezcla de servicios.) */
+const SKU_FAMILY = Object.fromEntries(
+  Object.entries(SHOP.services).flatMap(([fam, def]) => def.skus.map(sku => [sku, fam])));
 const TECHS = ["Luis M.","Ana R.","Carlos P.","María G.","Equipo A","Equipo B","Diego S."];
 
 /* ---------- helpers ---------- */
@@ -887,7 +935,7 @@ function carFlow(c){
   return (w + d) > 0 ? w / (w + d) : null;
 }
 function shopFlow(){
-  const active = cars.filter(c => c.stage !== "Listo" || carWork(c) > 0);
+  const active = live().filter(c => c.stage !== "Listo" || carWork(c) > 0);
   const w = active.reduce((a,c) => a + carWork(c), 0);
   const d = active.reduce((a,c) => a + carWait(c), 0);
   return { work:w, wait:d, pct: (w+d) > 0 ? Math.round(w/(w+d)*100) : null };
@@ -900,15 +948,28 @@ function shopFlow(){
 function alerts(){
   const out = [];
   const A = SHOP.alerts;
-  cars.forEach(c => {
-    if (c.stage === "Listo") return;
+  live().forEach(c => {
+    // 0. Terminado hace rato y el cliente no aparece: ocupa espacio y hay
+    //    que llamarlo. Es la única alerta que se dispara en "Listo".
+    if (c.stage === "Listo") {
+      const r = readyMs(c);
+      if (r >= A.pickupH*H) out.push({
+        sev: r >= A.pickupH*3*H ? "alta" : "media", kind:"pickup", car:c,
+        title:`${c.brand} ${c.model} lleva ${short(r)} listo y nadie lo ha recogido`,
+        detail:`Llamar a ${c.client} · ocupa espacio en el taller`,
+        weight: r
+      });
+      return;
+    }
     // 1. Alguien está encima del tiempo, ahora mismo.
     if (c.claimedBy && c.running) {
       const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
       if (v && v.pct >= A.overPct) out.push({
         sev: v.pct >= 100 ? "alta" : "media", kind:"over", car:c,
         title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} ${atStage(c.stage)}`,
-        detail:`Debía durar ${short(STAGE_TARGET[c.stage])} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`,
+        detail:`Debía durar ${short(STAGE_TARGET[c.stage])} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`
+          + (c.changes.some(x => x.stage === c.stage)
+             ? " · el cliente amplió el trabajo en esta etapa" : ""),
         weight: v.over
       });
     }
@@ -942,7 +1003,7 @@ function alerts(){
    que no cuadran, en vez de presentarlos como verdad. */
 function integrityFlags(){
   const out = [];
-  cars.forEach(c => {
+  live().forEach(c => {
     c.stageLog.forEach(l => {
       const tgt = STAGE_TARGET[l.stage];
       if (tgt && l.work > 0 && l.work < tgt*0.2) out.push({
@@ -965,7 +1026,7 @@ function integrityFlags(){
 /* Etapas ya cerradas que se pasaron del tiempo — la lista de a quién llamar. */
 function overruns(){
   const out = [];
-  cars.forEach(c => {
+  live().forEach(c => {
     c.stageLog.forEach(l => {
       const v = variance(l.work, STAGE_TARGET[l.stage]);
       if (v && v.over > 0) out.push({ car:c, stage:l.stage, tech:l.tech, real:l.work,
@@ -1041,6 +1102,10 @@ function newCar(o){
     waitFrom:o.waitFrom || Date.now(),// desde cuándo espera en esta etapa
     waitMs:{},               // ms de ESPERA acumulado por etapa (tiempo muerto)
     stageLog:[],             // historial cerrado: {stage, tech, work, wait}
+    readyAt:null,            // cuándo quedó LISTO (empieza a contar la espera del cliente)
+    delivered:null,          // cuándo se lo llevó el cliente. Con esto sale de operaciones.
+    deliveredBy:null,
+    changes:[],              // cambios de servicio pedidos a mitad de trabajo
     activeSubs:new Set(),    // subetapas activas ahora
     subMs:{},                // ms acumulado por subetapa
     notes:o.notes ? o.notes.slice() : []
@@ -1066,6 +1131,45 @@ function bank(c){                        // guarda el tiempo corrido
 }
 /* ESPERA: el carro terminó una etapa y nadie lo ha tomado todavía.
    Es tiempo muerto — normalmente donde se esconde la demora real. */
+/* ══ CICLO DE VIDA ══════════════════════════════════════════════════════
+   Operaciones muestra sólo lo que está en el taller. "Listo" NO es el final:
+   el carro sigue ocupando espacio hasta que el cliente lo recoge, y ese
+   tiempo es dinero parado. Por eso sigue en el tablero, con su propio reloj,
+   hasta que alguien marca ENTREGADO. Ahí sale del tablero y pasa al
+   historial con todos sus tiempos. */
+function live(){ return cars.filter(c => !c.delivered); }
+function delivered(){ return cars.filter(c => c.delivered).sort((a,b) => b.delivered - a.delivered); }
+
+/* Confirmación corta de lo que acaba de pasar. Si la acción se puede
+   deshacer, se ofrece deshacerla — sin eso, un toque por error borra
+   un carro del tablero y nadie sabe a dónde fue. */
+function toast(html, undo){
+  const box = $("toasts"); if (!box) return;
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span>${html}</span>`;
+  if (undo){
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = undo.label || "Deshacer";
+    b.addEventListener("click", () => { undo.fn(); el.remove(); paint(); });
+    el.appendChild(b);
+  }
+  box.appendChild(el);
+  setTimeout(() => el.remove(), undo ? 9000 : 4200);
+}
+function readyMs(c){ return c.readyAt ? Date.now() - c.readyAt : 0; }
+function deliver(c, who){
+  bank(c); bankWait(c);
+  c.running = false; c.runFrom = null; c.overnight = false;
+  c.activeSubs.clear();
+  c.delivered = Date.now();
+  c.deliveredBy = who || c.claimedBy || c.tech;
+  c.notes.push({ at:Date.now(), who:c.deliveredBy, text:"El cliente recogió el vehículo. Sale de operaciones." });
+}
+function undeliver(c){
+  c.delivered = null; c.deliveredBy = null;
+  c.notes = c.notes.filter(n => n.text !== "El cliente recogió el vehículo. Sale de operaciones.");
+}
 function isWaiting(c){ return !c.claimedBy && c.stage !== "Listo"; }
 function liveWait(c){ return isWaiting(c) && c.waitFrom ? Date.now() - c.waitFrom : 0; }
 function waitMs(c){ return (c.waitMs[c.stage]||0) + liveWait(c); }
@@ -1106,7 +1210,7 @@ function finishStage(c){
   if (i < STAGES.length - 1) {
     c.stage = STAGES[i+1];
     c.waitFrom = Date.now();
-    if (c.stage === STAGES[STAGES.length-1]) c.everStarted = true;
+    if (c.stage === STAGES[STAGES.length-1]) { c.everStarted = true; c.readyAt = Date.now(); }
   }
 }
 function moveTo(c, stage){
@@ -1118,7 +1222,8 @@ function moveTo(c, stage){
   c.activeSubs.clear();
   c.claimedBy = null;
   c.waitFrom = Date.now();
-  if (stage === STAGES[STAGES.length-1]) { c.everStarted = true; }
+  if (stage === STAGES[STAGES.length-1]) { c.everStarted = true; c.readyAt = c.readyAt || Date.now(); }
+  else { c.readyAt = null; }
 }
 function toggleSub(c, name){
   bank(c);
@@ -1217,6 +1322,9 @@ let cars = [
 
   // Quien está trabajando un carro ya lo tomó; solo los intactos quedan libres.
   cars.forEach(c => { if (c.running || c.overnight || c.stage === "Listo") c.claimedBy = c.tech; });
+  /* Un carro en LISTO ya terminó: lo que cuenta desde ahí es cuánto lleva
+     esperando a que el cliente venga a buscarlo. */
+  cars.forEach(c => { if (c.stage === "Listo" && !c.readyAt) c.readyAt = now - 5*H; });
 
   // Tiempo muerto real de días anteriores — donde se esconde la demora.
   c103.waitMs = { "Recepción":h(0.4), "Preparación":h(1.2), "En proceso":h(0.9), "Control de calidad":0, "Listo":0 };
@@ -1287,7 +1395,7 @@ function renderStationBar(){
   btn.textContent = station.area ? `${station.area.toUpperCase()}${station.tech ? " · " + station.tech : ""}` : "TODAS LAS ÁREAS";
   btn.classList.toggle("on", !!station.area);
   if (!station.area) { bar.hidden = true; return; }
-  const mine = cars.filter(c => c.stage === station.area);
+  const mine = live().filter(c => c.stage === station.area);
   const free = mine.filter(c => !c.claimedBy).length;
   const run  = mine.filter(c => c.running).length;
   bar.hidden = false;
@@ -1300,7 +1408,7 @@ function renderStationBar(){
 /* Fin del día: congela todo. Nada corre de noche. */
 function endDay(){
   let n = 0;
-  cars.forEach(c => { if (c.running) { pause(c, true); n++; }
+  live().forEach(c => { if (c.running) { pause(c, true); n++; }
                       if (isWaiting(c)) { bankWait(c); c.waitFrom = null; } });
   return n;
 }
@@ -1324,8 +1432,9 @@ function autoResume(){
 
 function visible(){
   const q = ($("q").value || "").trim().toLowerCase();
-  if (!q) return cars;
-  return cars.filter(c => [c.brand,c.model,c.color,c.plate,c.client,c.tech,c.skus.join(" ")].join(" ").toLowerCase().includes(q));
+  const base = live();
+  if (!q) return base;
+  return base.filter(c => [c.brand,c.model,c.color,c.plate,c.client,c.tech,c.skus.join(" ")].join(" ").toLowerCase().includes(q));
 }
 
 /* ---------- render: KPIs ---------- */
@@ -1350,15 +1459,16 @@ function renderAlerts(){
 }
 
 function renderKpis(){
-  const running = cars.filter(c => stateOf(c) === "run").length;
-  const free    = cars.filter(c => stateOf(c) === "free").length;
-  const paused  = cars.filter(c => stateOf(c) === "pause").length;
-  const late    = cars.filter(c => dueParts(c).late && c.stage !== "Listo").length;
+  const L = live();
+  const running = L.filter(c => stateOf(c) === "run").length;
+  const free    = L.filter(c => stateOf(c) === "free").length;
+  const paused  = L.filter(c => stateOf(c) === "pause").length;
+  const late    = L.filter(c => dueParts(c).late && c.stage !== "Listo").length;
   // Tiempo muerto vivo: lo que ahora mismo se acumula sin que nadie trabaje.
-  const deadNow = cars.filter(c => stateOf(c)==="free").reduce((a,c)=>a+waitMs(c),0);
+  const deadNow = L.filter(c => stateOf(c)==="free").reduce((a,c)=>a+waitMs(c),0);
   const fl = shopFlow();
   const items = [
-    ["En taller", cars.length, "vehículos activos", ""],
+    ["En taller", L.length, "vehículos activos", ""],
     ["Eficiencia de flujo", fl.pct === null ? "—" : fl.pct + "%",
       fl.pct === null ? "sin datos" : `de cada hora en el taller, ${Math.round(fl.pct*0.6)} min son trabajo`,
       fl.pct === null ? "" : fl.pct < 40 ? "late" : fl.pct < 60 ? "pause" : "run"],
@@ -1380,8 +1490,9 @@ function cardHtml(c){
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
     <div class="name">${esc(c.brand)} ${esc(c.model)}</div>
     <div class="sub">${esc(c.color)} · ${esc(c.plate)}</div>
-    <div class="big">${done ? short(totalMs(c)) : st === "free" ? hms(waitMs(c)) : hms(stageMs(c))}</div>
-    <div class="cap">${done ? "total en el taller"
+    <div class="big">${done ? (c.readyAt ? short(readyMs(c)) : short(totalMs(c)))
+      : st === "free" ? hms(waitMs(c)) : hms(stageMs(c))}</div>
+    <div class="cap">${done ? (c.readyAt ? "listo · esperando que lo recojan" : "total en el taller")
       : st === "free" ? "nadie lo ha tomado"
       : esc(atStage(c.stage))}</div>
     ${(() => {
@@ -1394,6 +1505,7 @@ function cardHtml(c){
         ? `${short(v.over)} de más · debía durar ${short(tg)}`
         : `en tiempo · debía durar ${short(tg)}`}</div>`;
     })()}
+    ${c.changes.length ? `<div class="chips"><span class="chg">Servicio cambiado</span></div>` : ""}
     <div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
                     : `<span class="tag sub">Sin subetapa</span>`}
@@ -1419,6 +1531,32 @@ function renderBoard(){
     </div>`;
   }).join("");
   $("board").querySelectorAll(".card").forEach(el => el.addEventListener("click", () => open(el.dataset.id)));
+}
+
+function renderDone(){
+  const q = ($("q").value || "").trim().toLowerCase();
+  let rows = delivered();
+  if (q) rows = rows.filter(c => [c.brand,c.model,c.plate,c.client,c.skus.join(" ")].join(" ").toLowerCase().includes(q));
+  if (!rows.length){
+    $("done").innerHTML = `<div class="empty" style="padding:28px">Todavía no se ha entregado ningún vehículo. Los que el cliente recoja salen del tablero y quedan aquí, con sus tiempos.</div>`;
+    return;
+  }
+  $("done").innerHTML = `<table><thead><tr>
+      <th>Vehículo</th><th>Cliente</th><th>Servicios</th>
+      <th>Trabajo</th><th>Esperando</th><th>Total en taller</th><th>Entregado</th>
+    </tr></thead><tbody>${rows.map(c => {
+      const w = carWork(c), d = carWait(c);
+      const total = c.delivered - (+c.arrived);
+      return `<tr data-id="${c.id}">
+        <td><b>${esc(c.brand)} ${esc(c.model)}</b><div class="mut">${esc(c.plate)}</div></td>
+        <td>${esc(c.client)}</td>
+        <td>${esc(c.skus.map(shortSku).join(" · "))}${c.changes.length?` <span class="chg">cambió ${c.changes.length}×</span>`:""}</td>
+        <td>${short(w)}</td>
+        <td>${short(d)}</td>
+        <td>${short(total)}</td>
+        <td>${new Date(c.delivered).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}<div class="mut">${esc(c.deliveredBy||"")}</div></td>
+      </tr>`; }).join("")}</tbody></table>`;
+  $("done").querySelectorAll("tr[data-id]").forEach(tr => tr.addEventListener("click", () => open(tr.dataset.id)));
 }
 
 function renderList(){
@@ -1496,7 +1634,7 @@ function renderMgmt(){
     </div>`).join("")
     : `<div class="note">Todavía no hay etapas cerradas con técnico registrado.</div>`;
 
-  const al = cars.filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="free")
+  const al = live().filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="free")
     .map(c => `<div class="note"><span class="w">${esc(c.plate)} · ${esc(c.tech)}</span>
       ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} en ${esc(c.stage)} · entrega ${dueText(c)}</div>`);
   $("alerts").innerHTML = al.join("") || `<div class="note">Todo dentro de lo esperado.</div>`;
@@ -1620,6 +1758,20 @@ function open(id){
     fin.hidden = (st === "done" || st === "free");
     fin.textContent = `Terminar ${c.stage.toLowerCase()} → ${STAGES[STAGES.indexOf(c.stage)+1] || ""}`;
   }
+  const dv = $("d-deliver");
+  if (dv) {
+    dv.hidden = c.stage !== "Listo" || !!c.delivered;
+    if (!dv.hidden) dv.textContent = c.readyAt
+      ? `El cliente lo recogió · listo hace ${short(readyMs(c))}`
+      : "El cliente lo recogió · sacar del taller";
+  }
+
+  const chg = $("d-chg");
+  if (chg) chg.innerHTML = c.changes.length
+    ? `<div class="lbl" style="margin-bottom:2px">Cambios pedidos a mitad de trabajo</div>` +
+      c.changes.map(x => `<div class="cg">${esc(x.text)}
+        <em>${new Date(x.at).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(x.stage)} · ${esc(x.who||"")}</em></div>`).join("")
+    : "";
 
   renderStage(c);
   renderSubs(c);
@@ -1669,8 +1821,11 @@ function paint(){
   if (tab === "ops") {
     $("board").hidden = view !== "board";
     $("list").hidden  = view !== "list";
-    if (view === "board") renderBoard(); else renderList();
-    const freeN = cars.filter(c => stateOf(c)==="free").length;
+    $("done").hidden  = view !== "done";
+    if (view === "board") renderBoard();
+    else if (view === "done") renderDone();
+    else renderList();
+    const freeN = live().filter(c => stateOf(c)==="free").length;
     $("ops-hint").textContent = freeN
       ? `${freeN} ${freeN === 1 ? "vehículo lleva" : "vehículos llevan"} rato sin que nadie los tome. Ese tiempo cuenta contra la entrega.`
       : `Cada etapa cuenta su tiempo desde 0. Al terminar, el carro queda libre para la siguiente área.`;
@@ -1684,7 +1839,7 @@ function tick(){
   autoResume();
   if (tab === "ops") {
     if (view === "board") {
-      cars.forEach(c => {
+      live().forEach(c => {
         const el = document.querySelector(`.card[data-id="${c.id}"] .big`);
         if (!el) return;
         const s = stateOf(c);
@@ -1707,8 +1862,14 @@ function tick(){
 
 /* ---------- events ---------- */
 $("q").addEventListener("input", paint);
-$("v-board").addEventListener("click", () => { view="board"; $("v-board").classList.add("on"); $("v-list").classList.remove("on"); paint(); });
-$("v-list").addEventListener("click", () => { view="list"; $("v-list").classList.add("on"); $("v-board").classList.remove("on"); paint(); });
+function setView(v){
+  view = v;
+  ["board","list","done"].forEach(k => $("v-"+k).classList.toggle("on", k === v));
+  paint();
+}
+$("v-board").addEventListener("click", () => setView("board"));
+$("v-list").addEventListener("click",  () => setView("list"));
+$("v-done").addEventListener("click",  () => setView("done"));
 
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
   tab = b.dataset.tab;
@@ -1756,6 +1917,7 @@ $("d-primary").addEventListener("click", () => {
     const who = station.tech || c.tech;
     claim(c, who);
     c.notes.push({ at:Date.now(), who, stage:c.stage, text:`${who} tomó el trabajo ${atStage(c.stage)}.` });
+    toast(`<b>${esc(who)}</b> tomó ${esc(c.brand)} ${esc(c.model)} · el cronómetro está corriendo`);
   } else if (st !== "done") {
     start(c);
     c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Trabajo reanudado ${atStage(c.stage)}.` });
@@ -1769,7 +1931,20 @@ $("d-finish").addEventListener("click", () => {
   finishStage(c);
   c.notes.push({ at:Date.now(), who, stage:from,
     text:`${from} terminada en ${short(worked)}. Libre para ${c.stage}.` });
+  toast(c.stage === "Listo"
+    ? `<b>${esc(c.brand)} ${esc(c.model)}</b> quedó LISTO · esperando que el cliente lo recoja`
+    : `<b>${esc(c.brand)} ${esc(c.model)}</b> pasó a <b>${esc(c.stage)}</b> · libre para que alguien lo tome`);
   open(c.id); paint();
+});
+
+/* Entregar saca el carro del tablero: es la acción más fácil de tocar por
+   error, así que siempre se puede deshacer. */
+$("d-deliver").addEventListener("click", () => {
+  const c = cars.find(x => x.id === selected); if (!c || c.stage !== "Listo") return;
+  deliver(c, station.tech || c.claimedBy || c.tech);
+  toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> entregado · salió del tablero, está en Entregados`,
+        { label:"Deshacer", fn: () => { undeliver(c); toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> volvió al tablero`); } });
+  close(); paint();
 });
 
 $("d-subs-open").addEventListener("click", () => {
@@ -1948,7 +2123,13 @@ $("m-save").addEventListener("click", () => {
     if (added.length) parts.push(`agregó ${added.join(", ")}`);
     if (removed.length) parts.push(`quitó ${removed.join(", ")}`);
     if (movedDue) parts.push(`entrega movida a ${due.toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}`);
-    c.notes.push({ at:Date.now(), who:c.tech, text:`Cambio pedido por el cliente: ${parts.join(" · ")}.` });
+    /* Se guarda como HECHO, no sólo como nota. Si el cliente amplía el
+       trabajo a mitad de camino, el carro se va a pasar del tiempo — y el
+       tablero tiene que poder decir que fue por eso y no por el técnico. */
+    c.changes.push({ at:Date.now(), stage:c.stage, who:station.tech || c.tech,
+                     added, removed, movedDue, text:parts.join(" · ") });
+    c.notes.push({ at:Date.now(), who:c.tech, stage:c.stage, text:`Cambio pedido por el cliente: ${parts.join(" · ")}.` });
+    toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> · ${esc(parts.join(" · "))}`);
   }
   closeModal(); open(c.id); paint();
 });
@@ -1957,5 +2138,6 @@ paint();
 tick();
 setInterval(tick, 1000);
 </script>
+  <div class="toasts" id="toasts"></div>
 </body>
 </html>
