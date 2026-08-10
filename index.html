@@ -357,7 +357,59 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .lg.now{background:#f6f7f9;border-radius:6px;padding:6px 8px}
 .lg.tot{border-top:2px solid var(--line);border-bottom:none;font-weight:700}
 .lg.tot .lg-d{color:#a8341f}
+/* ── v11: la cadena del trabajo, tocable ── */
+.stepper{display:flex;flex-direction:column;gap:4px}
+.step{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;width:100%;
+  padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;
+  text-align:left;cursor:pointer;font:inherit;min-height:52px}
+.step:hover{border-color:var(--ink)}
+.step-n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  font:700 11px/1 var(--ui);background:#eee;color:var(--muted)}
+.step-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+.step-s{font:600 13px/1.2 var(--ui);color:var(--ink)}
+.step-m{font:400 10px/1.2 var(--ui);color:var(--muted)}
+.step-t{font:700 13px/1 var(--ui);font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.step-t em{display:block;font:600 10px/1.4 var(--ui);font-style:normal;color:#a8341f}
+.step.done{background:#f7f8f7}
+.step.done .step-n{background:#0f7a3d;color:#fff}
+.step.now{border-color:var(--ink);border-width:2px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.step.now .step-n{background:var(--ink);color:#fff}
+.step.next{opacity:.62}
+.step.warn{border-color:#c9922e}
+.step.bad{border-color:#a8341f;background:#fdf5f3}
+.step.bad .step-t{color:#a8341f}
+
+/* ── v11: esperado vs real, y la lista de a quién preguntar ── */
+.vsr{margin-top:6px;font:600 10px/1.3 var(--ui);letter-spacing:.02em}
+.vsr.ok,.vsr.good{color:#0f7a3d}
+.vsr.warn{color:#b8801f}
+.vsr.bad{color:#a8341f}
+.box.wide{grid-column:1/-1}
+.ov{display:grid;grid-template-columns:1.4fr 1fr .9fr .8fr .7fr;gap:12px;align-items:baseline;
+  padding:9px 0 9px 10px;border-bottom:1px solid var(--line);border-left:3px solid var(--line);font-size:12px}
+.ov:last-child{border-bottom:none}
+.ov.bad{border-left-color:#a8341f;background:#fdf5f3}
+.ov.warn{border-left-color:#c9922e}
+.ov-car{font-weight:700;color:var(--ink)}
+.ov-car em{display:block;font:400 10px/1.4 var(--ui);color:var(--muted);font-style:normal}
+.ov-st{color:var(--ink)}
+.ov-who{color:var(--ink);font-weight:600}
+.ov-n,.ov-d{font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+.ov-n em,.ov-d em{display:block;font:400 10px/1.4 var(--ui);color:var(--muted);font-style:normal}
+.ov.bad .ov-d{color:#a8341f}
+.ov.warn .ov-d{color:#b8801f}
+.tgt-note{margin:10px 0 0;font-size:11px;color:var(--muted);line-height:1.5}
+.tw{display:grid;grid-template-columns:1.1fr .8fr .7fr .9fr .9fr;gap:12px;align-items:baseline;
+  padding:8px 0 8px 10px;border-bottom:1px solid var(--line);border-left:3px solid var(--line);font-size:12px}
+.tw:last-child{border-bottom:none}
+.tw.bad{border-left-color:#a8341f}.tw.warn{border-left-color:#c9922e}.tw.good{border-left-color:#0f7a3d}
+.tw-n{font-weight:700}
+.tw-c,.tw-o{color:var(--muted);font-size:11px}
+.tw-t,.tw-p{font-variant-numeric:tabular-nums;font-weight:600}
+.tw.bad .tw-p{color:#a8341f}.tw.warn .tw-p{color:#b8801f}.tw.good .tw-p{color:#0f7a3d}
 @media (max-width:1100px){            /* tablet */
+  .ov,.tw{grid-template-columns:1fr auto;row-gap:2px}
+  .ov-st,.ov-who,.tw-c,.tw-o{font-size:11px;color:var(--muted)}
   .board{grid-template-columns:1fr!important}
   .card{padding:16px}
   .card .big{font-size:34px}
@@ -436,6 +488,15 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
             <h2>Mezcla de servicios activos</h2>
             <div id="mix"></div>
           </div>
+          <div class="box wide">
+            <h2>Se pasaron del tiempo · a quién preguntar</h2>
+            <div id="overruns"></div>
+            <p class="tgt-note" id="tgt-note"></p>
+          </div>
+          <div class="box wide">
+            <h2>Por técnico · contra el tiempo esperado</h2>
+            <div id="bytech"></div>
+          </div>
           <div class="box">
             <h2>Atención</h2>
             <div id="alerts" class="notes"></div>
@@ -472,8 +533,8 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
         </div>
 
         <div class="sec">
-          <div class="lbl">Etapa</div>
-          <select class="selbig" id="d-stage" aria-label="Etapa del vehículo"></select>
+          <div class="lbl">Etapas de este trabajo · toca para mover el carro</div>
+          <div class="stepper" id="d-stepper"></div>
         </div>
 
         <div class="sec">
@@ -654,6 +715,87 @@ const TECHS = ["Luis M.","Ana R.","Carlos P.","María G.","Equipo A","Equipo B",
 
 /* ---------- helpers ---------- */
 const H = 3600000;
+
+/* ── TIEMPO ESPERADO ─────────────────────────────────────────────────────
+   Sin un objetivo, "2 horas" no dice nada. Con objetivo, dice "el doble".
+   Estos son PUNTOS DE PARTIDA para que Oscar los ajuste con su experiencia;
+   la pantalla los marca como estimados hasta que él los confirme. */
+const TARGETS_CONFIRMED = false;   // Oscar aún no ha fijado los suyos
+const STAGE_TARGET = {
+  "Recepción": 0.5*H,
+  "Preparación": 2*H,
+  "En proceso": 6*H,
+  "Control de calidad": 1*H,
+  "Listo": null
+};
+const SUB_TARGET = {
+  "Lavado": 0.75*H,
+  "Descontaminación de pintura": 1*H,        // el ejemplo de Oscar
+  "Corrección de pintura": 3*H,
+  "Aplicación de Modesta": 2.5*H,
+  "Curado de Modesta con lámparas IR": 2*H,
+  "Revisión de pintura para instalar PPF": 0.5*H,
+  "Ploteo de piezas": 1.5*H,
+  "Instalación de PPF": 4*H,
+  "Tiempo de secado al sol": 1*H,
+  "Cortando la lámina": 0.75*H,
+  "Instalando": 1.5*H,
+  "Desarme": 2*H,
+  "Desmonte de aros": 0.5*H,
+  "En reparación": 5*H,
+  "En preparación": 3*H,
+  "En cabina de pintura": 5*H,
+  "Repulido y brillado": 2.5*H,
+  "Arme": 2*H,
+  "Lavado y detallado": 1*H,
+  "Revisado y listo": 0.5*H
+};
+/* Cuánto se pasó (o se ahorró) contra lo esperado. null = sin referencia. */
+function variance(actualMs, targetMs){
+  if (!targetMs || !actualMs) return null;
+  return { over: actualMs - targetMs, pct: Math.round((actualMs/targetMs - 1) * 100) };
+}
+function varClass(v){
+  if (!v) return "";
+  if (v.pct >= 50) return "bad";      // el doble o casi
+  if (v.pct >= 15) return "warn";
+  if (v.pct <= -15) return "good";    // más rápido de lo esperado
+  return "ok";
+}
+/* Etapas ya cerradas que se pasaron del tiempo — la lista de a quién llamar. */
+function overruns(){
+  const out = [];
+  cars.forEach(c => {
+    c.stageLog.forEach(l => {
+      const v = variance(l.work, STAGE_TARGET[l.stage]);
+      if (v && v.over > 0) out.push({ car:c, stage:l.stage, tech:l.tech, real:l.work,
+                                      target:STAGE_TARGET[l.stage], v, wait:l.wait });
+    });
+    // la etapa en curso también, si ya se pasó
+    if (c.stage !== "Listo" && c.claimedBy) {
+      const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
+      if (v && v.over > 0) out.push({ car:c, stage:c.stage, tech:c.claimedBy, real:stageMs(c),
+                                      target:STAGE_TARGET[c.stage], v, wait:waitMs(c), live:true });
+    }
+  });
+  return out.sort((a,b) => b.v.over - a.v.over);
+}
+/* Promedio por técnico contra el objetivo — quién va rápido y quién no. */
+function byTech(){
+  const m = {};
+  cars.forEach(c => c.stageLog.forEach(l => {
+    if (!l.tech) return;
+    const tgt = STAGE_TARGET[l.stage];
+    const r = m[l.tech] || (m[l.tech] = { n:0, work:0, target:0, over:0 });
+    r.n++; r.work += l.work;
+    if (tgt) { r.target += tgt; if (l.work > tgt) r.over++; }
+  }));
+  return Object.entries(m).map(([tech, r]) => ({
+    tech, n:r.n, work:r.work, over:r.over,
+    pct: r.target ? Math.round((r.work/r.target - 1) * 100) : null
+  })).sort((a,b) => (b.pct ?? -999) - (a.pct ?? -999));
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -983,6 +1125,16 @@ function cardHtml(c){
     <div class="cap">${done ? "total en el taller"
       : st === "free" ? "esperando que alguien lo tome"
       : "en " + esc(c.stage.toLowerCase())}</div>
+    ${(() => {
+      if (done || st === "free") return "";
+      const tg = STAGE_TARGET[c.stage];
+      if (!tg) return "";
+      const v = variance(stageMs(c), tg);
+      if (!v) return "";
+      return `<div class="vsr ${varClass(v)}">${v.over > 0
+        ? `${short(v.over)} sobre lo esperado (${short(tg)})`
+        : `dentro de lo esperado · meta ${short(tg)}`}</div>`;
+    })()}
     <div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
                     : `<span class="tag sub">Sin subetapa</span>`}
@@ -1059,7 +1211,33 @@ function renderMgmt(){
   cars.forEach(c => c.skus.forEach(s => { const f = SKU_FAMILY[s] || s; mix[f] = (mix[f]||0)+1; }));
   bars($("mix"), Object.entries(mix).sort((a,b)=>b[1]-a[1]), v => `${v}`);
 
-  const al = cars.filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="idle")
+  // La lista de a quién llamar: etapas que se pasaron, con nombre y número.
+  const ov = overruns();
+  $("overruns").innerHTML = ov.length ? ov.slice(0,10).map(o => `
+    <div class="ov ${varClass(o.v)}">
+      <span class="ov-car">${esc(o.car.brand)} ${esc(o.car.model)}<em>${esc(o.car.plate)}</em></span>
+      <span class="ov-st">${esc(o.stage)}${o.live ? " · en curso" : ""}</span>
+      <span class="ov-who">${esc(o.tech || "sin tomar")}</span>
+      <span class="ov-n">${short(o.real)}<em>meta ${short(o.target)}</em></span>
+      <span class="ov-d">+${short(o.v.over)}<em>${o.v.pct > 0 ? "+" : ""}${o.v.pct}%</em></span>
+    </div>`).join("")
+    : `<div class="note">Ninguna etapa se pasó del tiempo esperado.</div>`;
+  $("tgt-note").textContent = TARGETS_CONFIRMED
+    ? "Tiempos esperados confirmados por Topcar."
+    : "Tiempos esperados: estimados de partida. Ajústalos con tu experiencia y esta lista se vuelve exacta.";
+
+  const bt = byTech();
+  $("bytech").innerHTML = bt.length ? bt.map(r => `
+    <div class="tw ${r.pct === null ? "" : r.pct >= 25 ? "bad" : r.pct >= 10 ? "warn" : r.pct <= -10 ? "good" : "ok"}">
+      <span class="tw-n">${esc(r.tech)}</span>
+      <span class="tw-c">${r.n} etapa(s)</span>
+      <span class="tw-t">${short(r.work)}</span>
+      <span class="tw-p">${r.pct === null ? "sin referencia" : (r.pct > 0 ? "+" : "") + r.pct + "% vs meta"}</span>
+      <span class="tw-o">${r.over ? r.over + " sobre tiempo" : "—"}</span>
+    </div>`).join("")
+    : `<div class="note">Todavía no hay etapas cerradas con técnico registrado.</div>`;
+
+  const al = cars.filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="free")
     .map(c => `<div class="note"><span class="w">${esc(c.plate)} · ${esc(c.tech)}</span>
       ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} en ${esc(c.stage)} · entrega ${dueText(c)}</div>`);
   $("alerts").innerHTML = al.join("") || `<div class="note">Todo dentro de lo esperado.</div>`;
@@ -1067,13 +1245,33 @@ function renderMgmt(){
 
 /* ---------- render: drawer ---------- */
 // Oscar: "deja cada etapa que ya predeterminaste" y debajo un solo control de subetapa.
+/* La cadena completa del trabajo, visible de un golpe: dónde está el carro,
+   qué falta, y cuánto llevó cada paso contra su meta. Tocar mueve el carro. */
 function renderStage(c){
   const at = STAGES.indexOf(c.stage);
-  $("d-stage").innerHTML = STAGES.map((s,i) => {
+  $("d-stepper").innerHTML = STAGES.map((s,i) => {
     const ms = (c.stage===s) ? stageMs(c) : (c.stageMs[s]||0);
-    const tail = ms ? ` · ${short(ms)}` : (i === at ? " · 0m" : " · sin empezar");
-    return `<option value="${esc(s)}" ${s===c.stage?"selected":""}>${i+1}. ${esc(s)}${tail}</option>`;
+    const tgt = STAGE_TARGET[s];
+    const v = variance(ms, tgt);
+    const state = i < at ? "done" : i === at ? "now" : "next";
+    const time = ms ? short(ms) : (i === at ? "0m" : "—");
+    const meta = tgt ? `meta ${short(tgt)}` : "sin meta";
+    return `<button type="button" class="step ${state} ${v ? varClass(v) : ""}" data-stage="${esc(s)}">
+      <span class="step-n">${i+1}</span>
+      <span class="step-b">
+        <span class="step-s">${esc(s)}</span>
+        <span class="step-m">${esc(meta)}</span>
+      </span>
+      <span class="step-t">${time}${v && v.over > 0 ? `<em>+${short(v.over)}</em>` : ""}</span>
+    </button>`;
   }).join("");
+  $("d-stepper").querySelectorAll(".step").forEach(b => b.addEventListener("click", () => {
+    const to = b.dataset.stage;
+    const cc = cars.find(x => x.id === selected); if (!cc || to === cc.stage) return;
+    moveTo(cc, to);
+    cc.notes.push({ at:Date.now(), who:cc.tech, stage:to, text:`Movido a ${to} a mano.` });
+    open(cc.id); paint();
+  }));
 }
 
 function subsOf(c){
@@ -1228,7 +1426,9 @@ function tick(){
     if (view === "board") {
       cars.forEach(c => {
         const el = document.querySelector(`.card[data-id="${c.id}"] .big`);
-        if (el) el.textContent = stateOf(c) === "done" ? short(totalMs(c)) : hms(stageMs(c));
+        if (!el) return;
+        const s = stateOf(c);
+        el.textContent = s === "done" ? short(totalMs(c)) : s === "free" ? hms(waitMs(c)) : hms(stageMs(c));
       });
     } else {
       renderList();
@@ -1307,15 +1507,6 @@ $("d-finish").addEventListener("click", () => {
   finishStage(c);
   c.notes.push({ at:Date.now(), who, stage:from,
     text:`${from} terminada en ${short(worked)}. Libre para ${c.stage}.` });
-  open(c.id); paint();
-});
-
-$("d-stage").addEventListener("change", () => {
-  const c = cars.find(x => x.id === selected); if (!c) return;
-  const to = $("d-stage").value;
-  if (to === c.stage) return;
-  moveTo(c, to);
-  c.notes.push({ at:Date.now(), who:c.tech, text:`Etapa cambiada a ${to}. El cronómetro de la etapa arranca en 0.` });
   open(c.id); paint();
 });
 
