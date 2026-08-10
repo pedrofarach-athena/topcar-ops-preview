@@ -50,6 +50,22 @@
   --rail-on-bg:#FAFAFA;
   --rail-on-fg:#0A0A0B;
 }
+@media (prefers-color-scheme: dark){
+  /* "Sistema" no hacía nada: sin esta regla siempre caía en claro. */
+  :root:not([data-theme]){
+    --black:#000000; --rail:#09090B; --rail-2:#18181B; --paper:#09090B;
+    --card:#141417; --ink:#FAFAFA; --ink-2:#D4D4D8; --muted:#8B8B93;
+    --line:#44444C; --line-2:rgba(255,255,255,.16);
+    --run:#4ADE80; --run-bg:rgba(34,197,94,.14); --run-hot:#22C55E;
+    --pause:#FBBF24; --pause-bg:rgba(245,158,11,.14); --pause-hot:#F59E0B;
+    --late:#F87171; --late-bg:rgba(239,68,68,.14); --late-hot:#EF4444;
+    --idle:#A1A1AA; --idle-bg:rgba(255,255,255,.06);
+    --hold:#94A3B8; --hold-bg:rgba(148,163,184,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.45);
+    --btn-bg:#FAFAFA; --btn-fg:#0A0A0B; --btn-bg-hi:#D4D4D8;
+    --chip-bg:#232327; --track:rgba(255,255,255,.14); --on-accent:#0A0A0B;
+  }
+}
 :root[data-theme="dark"]{
   --black:#000000;
   --rail:#09090B;
@@ -78,6 +94,10 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none !important}
+/* En una tablet, si tocar no responde, la gente toca otra vez. */
+button:active,.card:active,.step:active,.ab:active{transform:scale(.985)}
+button,.card,.step,.ab{-webkit-tap-highlight-color:transparent}
+@media (hover:none){ .card:hover{transform:none;box-shadow:none} }
 html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border-radius:8px}
@@ -340,6 +360,11 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
   font-family:var(--disp);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 .btn.alt:hover{background:var(--chip-bg)}
+.rowbar .n{font-style:normal;color:var(--muted);font-size:10.5px;margin-left:6px}
+.tel{color:var(--rail-ink);text-decoration:underline;text-underline-offset:2px}
+#d-phone{margin-top:6px}
+#d-phone .moreLink{color:var(--rail-dim)}
+#d-phone .moreLink:hover{color:var(--rail-ink)}
 .leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;
   font-size:11.5px;color:var(--muted);margin-left:auto}
 .leyenda span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -632,7 +657,7 @@ header{max-width:100%}
             <thead>
               <tr>
                 <th>Vehículo</th><th>Cliente</th><th>Etapa</th><th>Subetapas</th>
-                <th>Tiempo en etapa</th><th>Total taller</th><th>Estado</th><th>Entrega</th>
+                <th>Tiempo en etapa</th><th>Trabajo</th><th>En el taller</th><th>Estado</th><th>Entrega</th>
               </tr>
             </thead>
             <tbody id="list-b"></tbody>
@@ -667,6 +692,10 @@ header{max-width:100%}
             <div id="bytech"></div>
           </div>
           <div class="box">
+            <h2>Datos que no cuadran</h2>
+            <div id="integrity" class="notes"></div>
+          </div>
+          <div class="box">
             <h2>Atención</h2>
             <div id="alerts" class="notes"></div>
           </div>
@@ -680,6 +709,7 @@ header{max-width:100%}
           <h2 id="d-name">—</h2>
           <div class="c" id="d-color"></div>
           <div class="p" id="d-plate"></div>
+          <div class="p" id="d-phone"></div>
         </div>
         <button type="button" class="x" id="d-x" aria-label="Cerrar">×</button>
       </div>
@@ -809,6 +839,10 @@ header{max-width:100%}
         </div>
       </div>
 
+      <div class="f" id="fw-phone">
+        <label for="m-phone">Teléfono del cliente</label>
+        <input id="m-phone" type="tel" inputmode="tel" placeholder="809 555 0000" autocomplete="off"/>
+      </div>
       <div id="m-svcwrap" class="f">
         <label id="m-svclbl">Qué pidió el cliente · toca todo lo que aplique</label>
         <div id="m-fams"></div>
@@ -995,7 +1029,9 @@ function alerts(){
       if (r >= A.pickupH*H) out.push({
         sev: r >= A.pickupH*3*H ? "alta" : "media", kind:"pickup", car:c,
         title:`${c.brand} ${c.model} lleva ${short(r)} listo y nadie lo ha recogido`,
-        detail:`Llamar a ${c.client} · ocupa espacio en el taller`,
+        detail: c.phone
+          ? `Llamar a ${c.client} · ${c.phone} · ocupa espacio en el taller`
+          : `Falta el teléfono de ${c.client} · agrégalo para poder llamar`,
         weight: r
       });
       return;
@@ -1130,6 +1166,7 @@ function newCar(o){
   const c = {
     id:o.id, brand:o.brand, model:o.model, color:o.color, plate:o.plate, client:o.client,
     tech:o.tech, skus:o.skus.slice(), due:o.due, arrived:o.arrived,
+    phone:o.phone || null,        // sin teléfono no se puede llamar, y llamar es el punto
     stage:o.stage || STAGES[0],
     running:false,
     runFrom:null,
@@ -1169,7 +1206,7 @@ function inShopMs(c){ return (c.delivered || Date.now()) - (+c.arrived); }
 function timeline(c){
   const ev = [{ at:+c.arrived, tipo:"entro", txt:"Entró al taller" }];
   c.stageLog.forEach(l => ev.push({
-    at:l.at, tipo:"etapa", txt:`${l.stage} · terminada`,
+    at:l.at, tipo:"etapa", txt:`${l.stage} · ${l.manual ? "movida a mano" : "terminada"}`,
     quien:l.tech || "sin tomar", work:l.work, wait:l.wait
   }));
   (c.changes || []).forEach(x => ev.push({
@@ -1279,6 +1316,17 @@ function finishStage(c){
 function moveTo(c, stage){
   if (c.stage === stage) return;
   bank(c); bankWait(c);
+  /* Hay dos formas de salir de una etapa: terminarla o moverla a mano.
+     Si sólo una deja huella, la hoja de vida miente por omisión. Se guarda
+     el tiempo AÚN NO registrado, para no contarlo dos veces si el carro
+     vuelve a pasar por aquí. */
+  const yaW = c.stageLog.filter(l => l.stage === c.stage).reduce((a,l) => a + l.work, 0);
+  const yaE = c.stageLog.filter(l => l.stage === c.stage).reduce((a,l) => a + l.wait, 0);
+  const w = (c.stageMs[c.stage]||0) - yaW, e = (c.waitMs[c.stage]||0) - yaE;
+  if (w > 0 || e > 0) c.stageLog.push({
+    stage:c.stage, tech:c.claimedBy || c.tech,
+    work:Math.max(0,w), wait:Math.max(0,e), at:Date.now(), manual:true
+  });
   c.running = false; c.runFrom = null;   // la etapa nueva arranca en 0 y detenida
   c.overnight = false;
   c.stage = stage;
@@ -1418,7 +1466,10 @@ let cars = [
     });
   });
 
-  cars.forEach(c => { if (!c.claimedBy) c.waitFrom = now - 35*60000; });
+  /* La espera nunca puede empezar antes de que el carro entrara: un carro
+     que lleva 20 min en el taller no puede mostrar 35 min esperando. Ese es
+     justo el número que a Oscar le haría perder la confianza. */
+  cars.forEach(c => { if (!c.claimedBy) c.waitFrom = Math.max(now - 35*60000, +c.arrived); });
 })();
 
 let selected = null;
@@ -1497,7 +1548,13 @@ function autoResume(){
   const now = new Date();
   const key = now.toDateString();
   if (lastResumeDay === key) return;
-  if (now.getHours() > SHOP_OPEN_H || (now.getHours() === SHOP_OPEN_H && now.getMinutes() >= SHOP_OPEN_M)) {
+  /* Sólo dentro del horario del taller. Antes bastaba con que fueran "más
+     de las 8:15", así que abrir la pantalla a las 11 de la noche arrancaba
+     cronómetros de carros que nadie estaba tocando: trabajo inventado. */
+  const min = now.getHours()*60 + now.getMinutes();
+  const abre = SHOP_OPEN_H*60 + SHOP_OPEN_M;
+  const cierra = SHOP.hours.closeH*60 + SHOP.hours.closeM;
+  if (min >= abre && min < cierra) {
     lastResumeDay = key;
     let n = 0;
     cars.forEach(c => {
@@ -1654,21 +1711,25 @@ function renderList(){
       <td>${esc(c.stage)}</td>
       <td>${[...c.activeSubs].join(" · ") || "—"}</td>
       <td class="mono">${hms(stageMs(c))}</td>
-      <td class="mono">${short(totalMs(c))}</td>
+      <td class="mono">${short(carWork(c))}</td>
+      <td class="mono">${short(inShopMs(c))}</td>
       <td><span class="pill ${st==="run"?"run":st==="pause"?"pause":""}"><span class="dot"></span>${esc(stateLabel(c))}</span></td>
       <td class="mono" style="${p.late?"color:var(--late)":""}">${dueText(c)}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="8" style="color:var(--muted)">Sin resultados</td></tr>`;
+  }).join("") || `<tr><td colspan="9" style="color:var(--muted)">Sin resultados</td></tr>`;
   $("list-b").querySelectorAll("tr[data-id]").forEach(tr => tr.addEventListener("click", () => open(tr.dataset.id)));
 }
 
 /* ---------- render: gerencia ---------- */
 function bars(host, entries, fmt){
   const max = Math.max(...entries.map(e => e[1]), 1);
-  host.innerHTML = entries.map(([k,v]) => `
+  /* Si el promedio sale de 2 carros, decirlo. Un número sin su tamaño de
+     muestra invita a tomar decisiones que el dato no aguanta. */
+  host.innerHTML = entries.map(([k,v,n]) => `
     <div class="rowbar">
       <div>
-        <div class="lbl"><span>${esc(k)}</span></div>
+        <div class="lbl"><span>${esc(k)}${n !== undefined
+          ? ` <em class="n">${n === 0 ? "sin datos" : n === 1 ? "1 carro" : n + " carros"}</em>` : ""}</span></div>
         <div class="meter"><i style="width:${Math.round(v/max*100)}%"></i></div>
       </div>
       <div class="num">${fmt(v)}</div>
@@ -1679,7 +1740,7 @@ function renderMgmt(){
   const stageTotals = STAGES.map(s => {
     const withTime = cars.filter(c => (c.stageMs[s]||0) > 0 || (c.stage===s && stageMs(c)>0));
     const total = cars.reduce((a,c) => a + (c.stage===s ? stageMs(c) : (c.stageMs[s]||0)), 0);
-    return [s, withTime.length ? Math.round(total / withTime.length) : 0];
+    return [s, withTime.length ? Math.round(total / withTime.length) : 0, withTime.length];
   });
   bars($("avg-stages"), stageTotals, short);
 
@@ -1721,6 +1782,14 @@ function renderMgmt(){
     .map(c => `<div class="note"><span class="w">${esc(c.plate)} · ${esc(c.tech)}</span>
       ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} ${esc(atStage(c.stage))} · entrega ${dueText(c)}</div>`);
   $("alerts").innerHTML = al.join("") || `<div class="note">Todo dentro de lo esperado.</div>`;
+
+  /* El dato sólo sirve si no se puede maquillar. Esta función marcaba los
+     patrones que no cuadran y no se llamaba desde ningún lado. */
+  const fl = integrityFlags();
+  $("integrity").innerHTML = fl.length
+    ? fl.map(f => `<div class="note"><span class="w">${esc(f.car.plate)} · ${esc(f.tech||"sin tomar")}</span>
+        ${esc(f.car.brand)} ${esc(f.car.model)} — ${esc(f.text)}</div>`).join("")
+    : `<div class="note">Nada raro: los tiempos registrados cuadran con el trabajo marcado.</div>`;
 }
 
 /* ---------- render: drawer ---------- */
@@ -1801,6 +1870,13 @@ function open(id){
   $("d-name").textContent = `${c.brand} ${c.model}`;
   $("d-color").textContent = c.color;
   $("d-plate").textContent = `Placa ${c.plate} · ${c.client}`;
+  /* Oscar dijo que quiere poder LLAMAR. Con teléfono, es un enlace que
+     marca. Sin teléfono, lo dice — nunca un número inventado. */
+  $("d-phone").innerHTML = c.phone
+    ? `<a class="tel" href="tel:${esc(String(c.phone).replace(/[^0-9+]/g,""))}">Llamar a ${esc(c.client)} · ${esc(c.phone)}</a>`
+    : `<button type="button" class="moreLink" id="d-phone-add">Falta el teléfono · agrégalo para poder llamar</button>`;
+  const addTel = $("d-phone-add");
+  if (addTel) addTel.addEventListener("click", () => openModal("svc", c));
 
   const st = stateOf(c);
   const hero = $("d-hero");
@@ -2144,11 +2220,12 @@ function openModal(mode, car){
   if (isNew) {
     $("m-sub").textContent = "El cronómetro queda en 0:00:00 hasta que alguien pulse Iniciar.";
     $("m-svclbl").textContent = "Qué pidió el cliente · toca todo lo que aplique";
-    ["m-brand","m-model","m-color","m-plate","m-client","m-note","m-due"].forEach(id => $(id).value = "");
+    ["m-brand","m-model","m-color","m-plate","m-client","m-phone","m-note","m-due"].forEach(id => $(id).value = "");
     $("m-tech").innerHTML = TECHS.map(t => `<option>${esc(t)}</option>`).join("");
     mSkus = new Set(); dueTouched = false;
   } else {
     $("m-sub").textContent = `${car.brand} ${car.model} · placa ${car.plate}`;
+    $("m-phone").value = car.phone || "";
     $("m-svclbl").textContent = "Quita o agrega lo que el cliente cambió";
     mSkus = new Set(car.skus); dueTouched = true;
     $("m-due").value = toInput(car.due);
@@ -2203,7 +2280,8 @@ $("m-save").addEventListener("click", () => {
     const c = newCar({
       id: nextId(), brand: val("m-brand"), model: val("m-model"),
       color: val("m-color") || "Color sin anotar", plate: val("m-plate").toUpperCase(),
-      client: val("m-client"), tech: $("m-tech").value, skus: [...mSkus],
+      client: val("m-client"), phone: val("m-phone") || null,
+      tech: $("m-tech").value, skus: [...mSkus],
       due, arrived: new Date(), stage: STAGES[0]
     });
     c.notes.push({ at:Date.now(), who:c.tech,
@@ -2217,6 +2295,7 @@ $("m-save").addEventListener("click", () => {
 
   const c = mCar;
   if (!c) { closeModal(); return; }
+  c.phone = val("m-phone") || null;
   const before = new Set(c.skus);
   const added = [...mSkus].filter(s => !before.has(s));
   const removed = [...before].filter(s => !mSkus.has(s));
