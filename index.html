@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Topcar By LCP Group — Centro de operaciones</title>
+<title>Topcar By LCP Group — #AlwaysOnTop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -34,6 +34,7 @@
   --pause:#B45309; --pause-bg:#FEF3C7; --pause-hot:#D97706;
   --late:#B91C1C;  --late-bg:#FEE2E2;  --late-hot:#DC2626;
   --idle:#52525B;  --idle-bg:#E4E4E7;
+  --hold:#475569;  --hold-bg:#E2E8F0;   /* pausado a propósito */
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);
   --btn-bg:#111113; --btn-fg:#FFFFFF;      /* primario: oscuro sobre claro */
   --btn-bg-hi:#3F3F46;
@@ -65,6 +66,7 @@
   --pause:#FBBF24; --pause-bg:rgba(245,158,11,.14); --pause-hot:#F59E0B;
   --late:#F87171;  --late-bg:rgba(239,68,68,.14);   --late-hot:#EF4444;
   --idle:#A1A1AA;  --idle-bg:rgba(255,255,255,.06);
+  --hold:#94A3B8;  --hold-bg:rgba(148,163,184,.14);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.45);
   --btn-bg:#FAFAFA; --btn-fg:#0A0A0B;      /* primario: claro sobre oscuro */
   --btn-bg-hi:#D4D4D8;
@@ -90,8 +92,8 @@ button{cursor:pointer;border-radius:8px}
 .logo{display:flex;align-items:center;gap:12px;min-width:0}
 .logo .mark{background:#000;border:1px solid var(--rail-line);padding:8px 12px;border-radius:8px;display:flex}
 .logo img{height:30px;width:auto;display:block}
-.logo b{font-family:var(--disp);font-size:16px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;white-space:nowrap}
-.logo span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail-dim);margin-top:2px}
+.logo b{font-family:var(--disp);font-size:22px;letter-spacing:.02em;text-transform:none;font-weight:700;white-space:nowrap;line-height:1}
+.logo span{display:block;font-size:10.5px;letter-spacing:.10em;text-transform:none;color:var(--rail-dim);margin-top:2px;font-weight:600}
 .rail-sp{flex:1}
 .rail input{
   background:var(--rail-2);border:1px solid var(--rail-line);border-radius:8px;
@@ -150,15 +152,15 @@ main{padding:16px 20px 28px;min-width:0}
 .card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
 .card.sel{outline:2px solid var(--ink);outline-offset:1px}
 .card.is-run{border-left-color:var(--run)}
-.card.is-pause{border-left-color:var(--pause)}
-.card.is-late{border-left-color:var(--late)}
+.card.is-pause{border-left-color:var(--hold)}
+.card.is-late{box-shadow:inset -4px 0 0 var(--late)}
 .card .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
 .card .sub{font-size:11px;color:var(--muted);margin-top:2px}
 .card .big{
   font-family:var(--mono);font-size:26px;font-weight:600;margin-top:10px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;
 }
 .card.is-run .big{color:var(--run)}
-.card.is-pause .big{color:var(--pause)}
+.card.is-pause .big{color:var(--hold)}
 .card .cap{font-family:var(--disp);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .card .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .tag{
@@ -220,7 +222,7 @@ aside{
 .hero .lbl{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .hero .t{font-family:var(--mono);font-size:52px;font-weight:600;line-height:1;margin:10px 0 4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .hero.is-run .t{color:var(--run)}
-.hero.is-pause .t{color:var(--pause)}
+.hero.is-pause .t{color:var(--hold)}
 .hero .st{margin-top:10px;display:flex;justify-content:center}
 .hero .of{font-size:11.5px;color:var(--muted);margin-top:10px}
 .hero .of.late{color:var(--late)}
@@ -338,6 +340,27 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
   font-family:var(--disp);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 .btn.alt:hover{background:var(--chip-bg)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;
+  font-size:11.5px;color:var(--muted);margin-left:auto}
+.leyenda span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.leyenda i{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+.leyenda .lg-run{background:var(--run)}
+.leyenda .lg-free{border:2px dashed var(--pause)}
+.leyenda .lg-hold{background:var(--hold)}
+.leyenda .lg-late{background:var(--late)}
+.vida{display:flex;flex-direction:column;gap:0}
+.vida .vi{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:start;
+  padding:7px 0;border-bottom:1px solid var(--line-2);font-size:12.5px}
+.vida .vi:last-child{border-bottom:0}
+.vida .vd{width:9px;height:9px;border-radius:999px;background:var(--idle);margin-top:4px}
+.vida .vi.entro   .vd{background:var(--ink)}
+.vida .vi.etapa   .vd{background:var(--run)}
+.vida .vi.cambio  .vd{background:var(--pause)}
+.vida .vi.listo   .vd{background:var(--run-hot)}
+.vida .vi.entrega .vd{background:var(--ink)}
+.vida .vt{color:var(--ink)}
+.vida .vq{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.vida .vh{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
 .chglog{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .chglog > .lbl{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .chglog .cg{border-left:2px solid var(--pause);padding:5px 0 5px 9px;font-size:12px;color:var(--ink-2)}
@@ -387,7 +410,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 }
 @media (max-width:720px){
   .rail{gap:10px}
-  .logo span{display:none}
+  .logo b{font-size:17px}
   .rail input{min-width:0;flex:1}
   main{padding:14px}
   .kpis{padding:14px 14px 0;gap:8px}
@@ -396,7 +419,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 }
 
 /* ── v10: tomar / esperar / terminar, y tablets por área ── */
-.card.is-free{border-color:var(--pause);background:var(--pause-bg)}
+.card.is-free{border-left-style:dashed;border-left-color:var(--pause)}
 .card.is-free .big{color:var(--pause)}
 .station{margin-left:8px}
 #station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
@@ -421,7 +444,8 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .lg-t{color:var(--muted);font-size:11px;text-align:right}
 .lg.now{background:var(--idle-bg);border-radius:6px;padding:6px 8px}
 .lg.tot{border-top:2px solid var(--line);border-bottom:none;font-weight:700}
-.lg.tot .lg-d{color:var(--late)}
+.lg.tot .lg-d{color:var(--pause)}
+.lg.tot.neutra .lg-d{color:var(--ink)}
 /* ── v11: la cadena del trabajo, tocable ── */
 .stepper{display:flex;flex-direction:column;gap:4px}
 .step{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;width:100%;
@@ -558,8 +582,7 @@ header{max-width:100%}
     <div class="logo">
       <div class="mark"><img src="assets/topcar-logo.png" alt="Topcar By LCP Group"/></div>
       <div>
-        <b id="shop-name">Topcar By LCP Group</b>
-        <span id="shop-sub">Centro de operaciones</span>
+        <b id="shop-name">#AlwaysOnTop</b>
       </div>
     </div>
     <div class="rail-sp"></div>
@@ -595,6 +618,12 @@ header{max-width:100%}
         <div class="opsbar">
           <button type="button" class="newbtn" id="new-car"><span class="plus">+</span> Entró un vehículo</button>
           <p class="hint" id="ops-hint"></p>
+          <div class="leyenda" id="leyenda">
+            <span><i class="lg-run"></i>alguien trabajando</span>
+            <span><i class="lg-free"></i>sin tomar · parado</span>
+            <span><i class="lg-hold"></i>pausado</span>
+            <span><i class="lg-late"></i>pasó la entrega</span>
+          </div>
         </div>
         <div id="board" class="board"></div>
         <div id="done" class="tablewrap" hidden></div>
@@ -678,6 +707,11 @@ header{max-width:100%}
         <div class="sec">
           <div class="lbl">Tiempo por etapa · trabajando y esperando</div>
           <div class="ledger" id="d-ledger"></div>
+        </div>
+
+        <div class="sec">
+          <div class="lbl">Hoja de vida · todo lo que pasó, con su hora</div>
+          <div class="vida" id="d-vida"></div>
         </div>
 
         <div class="sec">
@@ -827,7 +861,7 @@ header{max-width:100%}
 const SHOP = {
   id: "topcar",
   name: "Topcar By LCP Group",
-  subtitle: "Centro de operaciones",
+  subtitle: "#AlwaysOnTop",   /* el eslogan de LCP: las mayúsculas son parte del eslogan */
   locale: "es-DO",
   /* El día del taller. Los cronómetros se congelan al cerrar y vuelven solos. */
   hours: { openH: 8, openM: 15, closeH: 17, closeM: 30 },
@@ -1119,6 +1153,30 @@ function stageMs(c){ return (c.stageMs[c.stage] || 0) + liveDelta(c); }
 function totalMs(c){
   return STAGES.reduce((a,s) => a + (c.stageMs[s]||0), 0) + liveDelta(c);
 }
+/* Reloj de pared: desde que entró hasta que el cliente se lo llevó (o hasta
+   ahora). Es lo que el cliente siente. Siempre >= trabajo + espera. */
+function inShopMs(c){ return (c.delivered || Date.now()) - (+c.arrived); }
+
+/* ══ HOJA DE VIDA ═══════════════════════════════════════════════════════
+   Todo lo que le pasó al carro, en orden, de una sola fuente. Esto es lo
+   que le prueba a Oscar que el dato es real: no un resumen, los hechos con
+   su hora. Cada evento ya estaba guardado; lo que faltaba era juntarlos. */
+function timeline(c){
+  const ev = [{ at:+c.arrived, tipo:"entro", txt:"Entró al taller" }];
+  c.stageLog.forEach(l => ev.push({
+    at:l.at, tipo:"etapa", txt:`${l.stage} · terminada`,
+    quien:l.tech || "sin tomar", work:l.work, wait:l.wait
+  }));
+  (c.changes || []).forEach(x => ev.push({
+    at:x.at, tipo:"cambio", txt:`El cliente cambió el trabajo: ${x.text}`, quien:x.who
+  }));
+  if (c.readyAt)   ev.push({ at:c.readyAt,   tipo:"listo",   txt:"Quedó listo · esperando al cliente" });
+  if (c.delivered) ev.push({ at:c.delivered, tipo:"entrega", txt:"El cliente lo recogió", quien:c.deliveredBy });
+  return ev.sort((a,b) => a.at - b.at);
+}
+function fecha(t){
+  return new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+}
 function subMs(c, name){
   return (c.subMs[name]||0) + (c.activeSubs.has(name) ? liveDelta(c) : 0);
 }
@@ -1340,6 +1398,21 @@ let cars = [
     { stage:"Preparación", tech:"Ana R.", work:h(6.5), wait:h(2.8), at: now - 40*H }
   ];
   // Los que nadie ha tomado llevan rato esperando.
+  /* Historial cerrado para TODOS los carros, derivado del tiempo que cada
+     uno ya tiene en stageMs/waitMs — no son números nuevos, es el mismo dato
+     puesto en orden. Sin esto, abrir un carro mostraba una hoja en blanco. */
+  cars.forEach(c => {
+    if (c.stageLog.length) return;                   // el que ya trae historial se respeta
+    const hasta = STAGES.indexOf(c.stage);
+    let t = +c.arrived;
+    STAGES.slice(0, hasta).forEach(st => {
+      const work = c.stageMs[st] || 0, wait = c.waitMs[st] || 0;
+      if (!work && !wait) return;
+      t += work + wait;
+      c.stageLog.push({ stage:st, tech:c.tech, work, wait, at:t });
+    });
+  });
+
   cars.forEach(c => { if (!c.claimedBy) c.waitFrom = now - 35*60000; });
 })();
 
@@ -1484,7 +1557,12 @@ function renderKpis(){
 /* ---------- render: board ---------- */
 function cardHtml(c){
   const st = stateOf(c);
-  const cls = st === "run" ? "is-run" : st === "free" ? "is-free" : st === "pause" ? "is-pause" : dueParts(c).late && c.stage!=="Listo" ? "is-late" : "";
+  /* Dos ejes distintos, dos señales distintas: el borde izquierdo dice
+     QUIÉN está encima; la franja derecha dice si va TARDE. Antes "tarde"
+     nunca se veía en un carro trabajando, que es justo cuando importa. */
+  const own  = st === "run" ? "is-run" : st === "free" ? "is-free" : st === "pause" ? "is-pause" : "";
+  const late = (dueParts(c).late && c.stage !== "Listo") ? " is-late" : "";
+  const cls  = (own + late).trim();
   const subs = [...c.activeSubs];
   const done = st === "done";
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
@@ -1546,7 +1624,7 @@ function renderDone(){
       <th>Trabajo</th><th>Esperando</th><th>Total en taller</th><th>Entregado</th>
     </tr></thead><tbody>${rows.map(c => {
       const w = carWork(c), d = carWait(c);
-      const total = c.delivered - (+c.arrived);
+      const total = inShopMs(c);
       return `<tr data-id="${c.id}">
         <td><b>${esc(c.brand)} ${esc(c.model)}</b><div class="mut">${esc(c.plate)}</div></td>
         <td>${esc(c.client)}</td>
@@ -1731,7 +1809,9 @@ function open(id){
   const pill = $("d-pill");
   pill.className = "pill " + (st==="run"?"run":st==="pause"?"pause":"");
   pill.innerHTML = `<span class="dot"></span>${stateLabel(c)}`;
-  $("d-hero-of").textContent = `Total en el taller: ${short(totalMs(c))} · entró ${c.arrived.toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}`;
+  $("d-hero-of").textContent = c.delivered
+    ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
+    : `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)}`;
   const dp = dueParts(c);
   const dueEl = $("d-hero-due");
   dueEl.classList.toggle("late", dp.late && c.stage !== "Listo");
@@ -1742,9 +1822,6 @@ function open(id){
   if (st === "run") {
     prim.textContent = "Pausar cronómetro";
     prim.className = "btn hold row";
-  } else if (st === "done") {
-    prim.textContent = "Vehículo listo";
-    prim.className = "btn row";
   } else if (st === "free") {
     prim.textContent = `Tomar este trabajo · ${c.stage}`;
     prim.className = "btn go row";
@@ -1752,7 +1829,8 @@ function open(id){
     prim.textContent = "Continuar trabajo";
     prim.className = "btn go row";
   }
-  prim.disabled = st === "done";
+  prim.hidden = (st === "done");   // en LISTO la acción es entregar, abajo
+  prim.disabled = false;
   // Terminar cierra la etapa y suelta el carro para la siguiente área.
   if (fin) {
     fin.hidden = (st === "done" || st === "free");
@@ -1765,6 +1843,16 @@ function open(id){
       ? `El cliente lo recogió · listo hace ${short(readyMs(c))}`
       : "El cliente lo recogió · sacar del taller";
   }
+
+  const vida = $("d-vida");
+  if (vida) vida.innerHTML = timeline(c).map(e => {
+    const detalle = e.tipo === "etapa"
+      ? `${e.quien} · ${short(e.work)} trabajando${e.wait ? " · " + short(e.wait) + " parado" : ""}`
+      : (e.quien || "");
+    return `<div class="vi ${e.tipo}"><span class="vd"></span>
+      <span class="vt">${esc(e.txt)}${detalle ? `<span class="vq">${esc(detalle)}</span>` : ""}</span>
+      <span class="vh">${esc(fecha(e.at))}</span></div>`;
+  }).join("");
 
   const chg = $("d-chg");
   if (chg) chg.innerHTML = c.changes.length
@@ -1791,9 +1879,19 @@ function open(id){
         <span class="lg-d">${waitMs(c) ? short(waitMs(c)) + " esperando" : "—"}</span>
         <span class="lg-t">${esc(c.claimedBy||"sin tomar")}</span>
       </div>` : "";
-    const tw = c.stageLog.reduce((a,l)=>a+l.wait,0) + waitMs(c);
+    /* Los tres números que Pedro pidió al final: lo que se trabajó, lo que
+       se perdió esperando, y el reloj de pared que siente el cliente. */
+    const tot = (etq, w, d) => `<div class="lg tot">
+        <span class="lg-s">${etq}</span><span class="lg-w">${w}</span>
+        <span class="lg-d">${d}</span><span class="lg-t"></span></div>`;
+    const tTrab = carWork(c), tEsp = carWait(c), tCasa = inShopMs(c);
+    const fuera = Math.max(0, tCasa - tTrab - tEsp);   // noches y taller cerrado
     led.innerHTML = (rows + cur || `<div class="lg"><span class="lg-s">Sin etapas cerradas</span></div>`)
-      + (tw ? `<div class="lg tot"><span class="lg-s">Total esperando</span><span class="lg-w"></span><span class="lg-d">${short(tw)}</span><span class="lg-t"></span></div>` : "");
+      + tot("Total trabajado", short(tTrab), "")
+      + (tEsp ? tot("Total esperando", "", short(tEsp) + " parado") : "")
+      + `<div class="lg tot neutra"><span class="lg-s">En el taller</span><span class="lg-w"></span>
+         <span class="lg-d">${short(tCasa)}</span><span class="lg-t"></span></div>`
+      + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} con el taller cerrado</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
   }
   $("d-more-s").textContent = `Ficha del vehículo · servicios, entrega y ${c.notes.length} nota(s)`;
   $("d-due").classList.toggle("bad", dp.late);
@@ -1853,7 +1951,9 @@ function tick(){
     const c = cars.find(x => x.id === selected);
     if (c) {
       $("d-hero-t").textContent = stateOf(c) === "done" ? short(totalMs(c)) : hms(stageMs(c));
-      $("d-hero-of").textContent = `Total en el taller: ${short(totalMs(c))} · entró ${c.arrived.toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}`;
+      $("d-hero-of").textContent = c.delivered
+        ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
+        : `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)}`;
       const p = dueParts(c);
       $("d-hero-due").textContent = p.late ? `Pasó la entrega por ${dueText(c).replace("−","")}` : `Faltan ${dueText(c)} para la entrega`;
     }
