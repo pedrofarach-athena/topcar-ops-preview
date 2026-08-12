@@ -619,6 +619,12 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 /* Botón de tema */
 .themebtn{width:44px;height:44px;margin-left:8px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);font-size:17px;cursor:pointer;flex:0 0 auto}
+/* Modo TV: para la pantalla grande del taller (lo pidió Oscar — como el
+   dashboard del socio en su TV de 65"). Encendido se marca como los tabs. */
+.tvbtn{font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.08em}
+.tvbtn.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
+body.tv-on{cursor:none}
+body.tv-on .newbtn,body.tv-on .endday,body.tv-on #station-box{visibility:hidden}
 
 /* ── TRES PANTALLAS, TRES TRABAJOS ──────────────────────────────────────
    Escritorio y tablet: el pipeline completo, se desliza de lado.
@@ -710,6 +716,8 @@ header{max-width:100%}
     <button type="button" class="themebtn" id="theme-btn" aria-label="Cambiar tema">
       <span id="theme-ico">◐</span>
     </button>
+    <button type="button" class="themebtn tvbtn" id="tv-btn"
+      title="Modo TV — rota solo entre el tablero y gerencia, para la pantalla del taller">TV</button>
     <div class="station" id="station-box">
       <button type="button" id="station-btn" title="Esta tablet pertenece a un área">TODAS LAS ÁREAS</button>
     </div>
@@ -2214,11 +2222,23 @@ function open(id){
   $("d-name").textContent = `${c.brand} ${c.model}`;
   $("d-color").textContent = c.color;
   $("d-plate").textContent = `Placa ${c.plate} · ${c.client}`;
-  /* Oscar dijo que quiere poder LLAMAR. Con teléfono, es un enlace que
-     marca. Sin teléfono, lo dice — nunca un número inventado. */
-  $("d-phone").innerHTML = c.phone
-    ? `<a class="tel" href="tel:${esc(String(c.phone).replace(/[^0-9+]/g,""))}">Llamar a ${esc(c.client)} · ${esc(c.phone)}</a>`
-    : `<button type="button" class="moreLink" id="d-phone-add">Agregar teléfono</button>`;
+  /* Oscar dijo que quiere poder LLAMAR. Con teléfono: marcar o WhatsApp con
+     el mensaje ya escrito (aquí se vive en WhatsApp). Sin teléfono, lo dice —
+     nunca un número inventado. */
+  if (c.phone) {
+    const digits = String(c.phone).replace(/[^0-9]/g,"");
+    const wa = digits.length === 10 ? "1" + digits : digits;
+    const waMsg = encodeURIComponent(
+      c.stage === "Listo"
+        ? `Hola ${c.client}! Su ${c.brand} ${c.model} está LISTO para recoger. — Topcar By LCP Group`
+        : `Hola ${c.client}! Le avisamos de su ${c.brand} ${c.model}: va avanzando, está ${atStage(c.stage)}. — Topcar By LCP Group`);
+    $("d-phone").innerHTML =
+      `<a class="tel" href="tel:${esc("+" + wa)}">Llamar</a> · ` +
+      `<a class="tel" href="https://wa.me/${esc(wa)}?text=${waMsg}" target="_blank" rel="noopener">WhatsApp</a>` +
+      `<span style="color:var(--rail-dim)"> · ${esc(c.client)} · ${esc(c.phone)}</span>`;
+  } else {
+    $("d-phone").innerHTML = `<button type="button" class="moreLink" id="d-phone-add">Agregar teléfono</button>`;
+  }
   const addTel = $("d-phone-add");
   if (addTel) addTel.addEventListener("click", () => openModal("svc", c));
 
@@ -2448,6 +2468,51 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 $("d-x").addEventListener("click", close);
 
 $("theme-btn").addEventListener("click", cycleTheme);
+
+/* ── MODO TV ────────────────────────────────────────────────────────────
+   Oscar, reunión 1: el dashboard del socio vive en una TV de 65" y él
+   quiere lo mismo — que rote solo, lento, y se pueda pausar. Rota entre
+   Operaciones y Gerencia cada 20 s, baja despacio y vuelve. Se apaga con
+   el mismo botón, con ESC o tocando cualquier parte de la pantalla. */
+let tvOn = false, tvTick = null, tvScroll = null;
+function tvShow(next){
+  const btn = document.querySelector(`.tabs button[data-tab="${next}"]`);
+  if (btn) btn.click();
+  window.scrollTo({ top: 0 });
+  clearInterval(tvScroll);
+  const t0 = Date.now();
+  tvScroll = setInterval(() => {   // paseo lento hacia abajo, sin saltos
+    if (Date.now() - t0 < 6000) return;   // deja leer arriba primero
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (window.scrollY < max) window.scrollBy(0, 1);
+  }, 24);
+}
+function tvStop(){
+  tvOn = false;
+  clearInterval(tvTick); clearInterval(tvScroll);
+  tvTick = tvScroll = null;
+  document.body.classList.remove("tv-on");
+  $("tv-btn").classList.remove("on");
+}
+function tvStart(){
+  tvOn = true;
+  if (selected) close();
+  document.body.classList.add("tv-on");
+  $("tv-btn").classList.add("on");
+  tvShow("ops");
+  let cur = "ops";
+  tvTick = setInterval(() => { cur = cur === "ops" ? "mgmt" : "ops"; tvShow(cur); }, 20000);
+}
+$("tv-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  tvOn ? tvStop() : tvStart();
+});
+/* Cualquier toque devuelve el control — en el taller la pantalla también es tablet. */
+document.addEventListener("pointerdown", e => {
+  const el = e.target instanceof Element ? e.target : null;
+  if (tvOn && !(el && el.closest("#tv-btn"))) tvStop();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && tvOn) tvStop(); });
 
 /* Elegir el área de esta tablet (y quién la usa). */
 $("station-btn").addEventListener("click", () => {
