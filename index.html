@@ -1158,6 +1158,11 @@ const SHOP = {
   /* Qué subetapas pertenecen a cada etapa — "una etapa, una subetapa": el
      técnico ve SOLO los pasos de donde está el carro. PRIMER BORRADOR del
      mapeo: Oscar lo ajusta con su experiencia (igual que los tiempos). */
+  /* Cuando un paso puede marcarse en dos etapas, aquí se dice en cuál se
+     CUENTA su tiempo. En pintura, "En preparación" va entre "En reparación" y
+     la cabina: es trabajo de En proceso. (Confirmar con Oscar.) */
+  pasoEtapa: { "En preparación": "En proceso" },
+
   stageSubs: {
     "Recepción": [],
     "Preparación": ["Lavado","Descontaminación de pintura","Desarme","Desmonte de aros",
@@ -1290,18 +1295,37 @@ const SUB_TARGET = Object.fromEntries(
 
    Ahora se suman los pasos que ESE carro tiene que hacer en ESA etapa. Si el
    carro no tiene servicios que toquen la etapa, se usa el número general. */
+/* A qué etapa PERTENECE cada paso para contar su tiempo.
+   `stageSubs` puede ofrecer el mismo paso en dos etapas porque el técnico lo
+   necesita en las dos ("En preparación" en pintura), pero para la meta tiene
+   que pertenecer a UNA sola o su tiempo se cuenta dos veces. Manda
+   `SHOP.pasoEtapa`; si no está, la primera etapa que lo declare. */
+const ETAPA_DE_PASO = (() => {
+  const m = { ...(SHOP.pasoEtapa || {}) };
+  STAGES.forEach(st => ((SHOP.stageSubs || {})[st] || []).forEach(n => {
+    if (!(n in m)) m[n] = st;
+  }));
+  return m;
+})();
+
+/* Cuánto debe durar una etapa PARA ESTE CARRO: la suma de los pasos que sus
+   servicios tienen que hacer ahí. Dos reglas que costaron caro:
+   · el tiempo se lee del SERVICIO que declara el paso, no de una tabla
+     global por nombre — dos servicios pueden declarar el mismo paso con
+     tiempos distintos y el catálogo no puede decidirlo por orden de archivo;
+   · si dos servicios comparten un paso (el lavado se hace una vez), cuenta
+     una sola vez, con el tiempo mayor declarado. */
 function metaEtapa(c, stage){
   if (!c) return STAGE_TARGET[stage];
-  const enEtapa = (SHOP.stageSubs || {})[stage];
-  if (!Array.isArray(enEtapa)) return STAGE_TARGET[stage];
-  const pasos = new Set();
-  famsOf(c.skus).forEach(f => (SHOP.services[f]?.steps || []).forEach(([n]) => {
-    if (enEtapa.includes(n)) pasos.add(n);
+  const pasos = new Map();
+  famsOf(c.skus).forEach(f => (SHOP.services[f]?.steps || []).forEach(([n, h]) => {
+    if (ETAPA_DE_PASO[n] !== stage) return;
+    pasos.set(n, Math.max(pasos.get(n) || 0, h));
   }));
   if (!pasos.size) return STAGE_TARGET[stage];
   let total = 0;
-  pasos.forEach(n => { total += SUB_TARGET[n] || 0; });
-  return total || STAGE_TARGET[stage];
+  pasos.forEach(h => { total += h * H; });
+  return total;
 }
 
 /* Cuánto se pasó (o se ahorró) contra lo esperado. null = sin referencia. */
@@ -1361,7 +1385,9 @@ function alerts(){
       return;
     }
     // 1. Alguien está encima del tiempo, ahora mismo.
-    if (c.claimedBy && c.running) {
+    /* Aunque esté parado esperando material: el retraso sigue siendo real y
+       hay que verlo. Lo que cambia es el motivo, no el hecho. */
+    if (c.claimedBy) {
       const v = variance(stageMs(c), metaEtapa(c, c.stage));
       if (v && v.pct >= A.overPct) out.push({
         sev: v.pct >= 100 ? "alta" : "media", kind:"over", car:c,
@@ -1407,7 +1433,7 @@ function integrityFlags(){
   const out = [];
   live().forEach(c => {
     c.stageLog.forEach(l => {
-      const tgt = metaEtapa(c, l.stage);
+      const tgt = l.target ?? metaEtapa(c, l.stage);
       if (tgt && l.work > 0 && l.work < tgt*0.2) out.push({
         car:c, stage:l.stage, tech:l.tech, kind:"muy-rapido",
         text:`${l.stage} cerrada en ${short(l.work)} contra una meta de ${short(tgt)} — confirmar que se hizo`
@@ -1430,9 +1456,10 @@ function overruns(){
   const out = [];
   live().forEach(c => {
     c.stageLog.forEach(l => {
-      const v = variance(l.work, metaEtapa(c, l.stage));
+      const tgtL = l.target ?? metaEtapa(c, l.stage);
+      const v = variance(l.work, tgtL);
       if (v && v.over > 0) out.push({ car:c, stage:l.stage, tech:l.tech, real:l.work,
-                                      target:metaEtapa(c, l.stage), v, wait:l.wait,
+                                      target:tgtL, v, wait:l.wait,
                                       why: delayReason(c, l.stage) });
     });
     // la etapa en curso también, si ya se pasó
@@ -1450,7 +1477,7 @@ function byTech(){
   const m = {};
   cars.forEach(c => c.stageLog.forEach(l => {
     if (!l.tech) return;
-    const tgt = metaEtapa(c, l.stage);
+    const tgt = l.target ?? metaEtapa(c, l.stage);
     const r = m[l.tech] || (m[l.tech] = { n:0, work:0, target:0, over:0 });
     r.n++; r.work += l.work;
     if (tgt) { r.target += tgt; if (l.work > tgt) r.over++; }
@@ -1569,7 +1596,9 @@ function relojVivo(c){
     : { txt: short(carWork(c)), cap: "total trabajado" };
   if (st === "free")  return { txt: hms(waitMs(c)),  cap: "nadie lo ha tomado" };
   if (st === "pause") return { txt: hms(stageMs(c)),
-    cap: c.overnight ? "el taller estaba cerrado" : `pausado por ${c.claimedBy || c.tech}` };
+    cap: c.overnight ? "el taller estaba cerrado"
+       : c.espera ? c.espera.toLowerCase()
+       : `pausado por ${c.claimedBy || c.tech}` };
   return { txt: hms(stageMs(c)), cap: atStage(c.stage) };
 }
 
@@ -1701,6 +1730,9 @@ function claim(c, tech){
 }
 function start(c){
   bank(c); bankPause(c);
+  /* Si vuelve a arrancar es que ya llegó el material: la marca se quita sola,
+     si no el carro se queda "esperando piezas" para siempre. */
+  c.espera = null;
   c.running = true;
   if (!c.subFrom) c.subFrom = {};
   c.activeSubs.forEach(n => { c.subFrom[n] = Date.now(); }); c.overnight = false; c.everStarted = true; c.runFrom = Date.now();
@@ -1725,6 +1757,9 @@ function finishStage(c){
     stage: c.stage, tech: c.claimedBy || c.tech,
     work: Math.max(0, (c.stageMs[c.stage]||0) - yaW),
     wait: Math.max(0, (c.waitMs[c.stage]||0) - yaE),
+    /* La meta con la que se cerró queda congelada: si mañana el cliente
+       amplía el trabajo, el retraso de ayer no se borra solo. */
+    target: metaEtapa(c, c.stage),
     at: Date.now()
   });
   c.running = false; c.runFrom = null; c.overnight = false;
@@ -1748,7 +1783,8 @@ function moveTo(c, stage){
   const w = (c.stageMs[c.stage]||0) - yaW, e = (c.waitMs[c.stage]||0) - yaE;
   if (w > 0 || e > 0) c.stageLog.push({
     stage:c.stage, tech:c.claimedBy || c.tech,
-    work:Math.max(0,w), wait:Math.max(0,e), at:Date.now(), manual:true
+    work:Math.max(0,w), wait:Math.max(0,e), target: metaEtapa(c, c.stage),
+    at:Date.now(), manual:true
   });
   c.running = false; c.runFrom = null;   // la etapa nueva arranca en 0 y detenida
   c.overnight = false;
@@ -1861,7 +1897,7 @@ function migrateSubs(c){
    NO desaparezca cuando el carro avanza: "que se quede siempre". */
 function sePasoAntes(c){
   return (c.stageLog || []).filter(l => {
-    const t = metaEtapa(c, l.stage);
+    const t = l.target ?? metaEtapa(c, l.stage);
     return t && l.work > t;
   });
 }
@@ -2153,6 +2189,27 @@ function endDay(){
 /* A las 8:15 el taller abre y los cronómetros vuelven solos. */
 const SHOP_OPEN_H = SHOP.hours.openH, SHOP_OPEN_M = SHOP.hours.openM;
 let lastResumeDay = null;
+/* Cuándo vuelven los cronómetros, en palabras. El sábado por la tarde no
+   vuelven "mañana": vuelven el lunes. */
+function proximaApertura(){
+  const d = new Date();
+  for (let i = 0; i < 8; i++) {
+    const x = new Date(d);
+    x.setDate(d.getDate() + i);
+    x.setHours(SHOP.hours.openH, SHOP.hours.openM, 0, 0);
+    if (x <= d) continue;
+    if (x.getDay() === 0) continue;                       // domingo cerrado
+    const dias = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+    const hoyMismo = x.toDateString() === d.toDateString();
+    const manana = new Date(d); manana.setDate(d.getDate() + 1);
+    const cuando = hoyMismo ? "hoy"
+      : x.toDateString() === manana.toDateString() ? "mañana"
+      : "el " + dias[x.getDay()];
+    return `${cuando} a las ${SHOP.hours.openH}:${String(SHOP.hours.openM).padStart(2,"0")} a. m.`;
+  }
+  return "cuando abra el taller";
+}
+
 /* ¿El taller está abierto ahora mismo? Sábado hasta las 12, domingo cerrado. */
 function tallerAbierto(now){
   const dia = now.getDay();                       // 0 domingo, 6 sábado
@@ -2443,7 +2500,11 @@ function renderMgmt(){
   bars($("mix"), Object.entries(mix).sort((a,b)=>b[1]-a[1]), v => `${v}`);
 
   // La lista de a quién llamar: etapas que se pasaron, con nombre y número.
-  const ov = overruns();   // cada fila trae su motivo, si lo anotaron
+  /* Pasarse seis minutos no es un problema del taller: es ruido que tapa los
+     retrasos de verdad. Se muestran desde 15 minutos. */
+  const ovTodo = overruns();
+  const ov = ovTodo.filter(o => o.v.over >= 15*60000);
+  const ovChicos = ovTodo.length - ov.length;
   const ovResto = Math.max(0, ov.length - 10);
   $("overruns").innerHTML = ov.length ? ov.slice(0,10).map(o => `
     <div class="ov ${varClass(o.v)}">
@@ -2458,9 +2519,10 @@ function renderMgmt(){
     </div>`).join("") + (ovResto
       ? `<div class="note">y ${ovResto} etapa(s) más que también se pasaron.</div>` : "")
     : `<div class="note">Ninguna etapa se pasó del tiempo esperado.</div>`;
-  $("tgt-note").textContent = TARGETS_CONFIRMED
+  $("tgt-note").textContent = (TARGETS_CONFIRMED
     ? "Tiempos esperados confirmados por Topcar."
-    : "Tiempos esperados: estimados de partida. Ajústalos con tu experiencia y esta lista se vuelve exacta.";
+    : "Tiempos esperados: estimados de partida. Ajústalos con tu experiencia y esta lista se vuelve exacta.")
+    + (ovChicos ? ` · ${ovChicos} etapa(s) se pasaron por menos de 15 minutos y no se listan.` : "");
 
   const bt = byTech();
   $("bytech").innerHTML = bt.length ? bt.map(r => `
@@ -2951,11 +3013,12 @@ document.addEventListener("pointerdown", e => {
 $("end-day").addEventListener("click", () => {
   /* Oscar: "si yo le doy sin querer me jode". Se pregunta antes. */
   const corriendo = live().filter(c => c.running).length;
+  const cuando = proximaApertura();
   if (corriendo && !confirm(
-    `Vas a parar ${corriendo} cronómetro(s) de una vez.\n\nVuelven solos mañana a las 8:15 a. m. ¿Seguro?`)) return;
+    `Vas a parar ${corriendo} cronómetro(s) de una vez.\n\nVuelven solos ${cuando}. ¿Seguro?`)) return;
   const n = endDay();
   paint();
-  toast(n ? `<b>${n}</b> cronómetro(s) pausados · vuelven solos a las 8:15 a. m.`
+  toast(n ? `<b>${n}</b> cronómetro(s) pausados · vuelven solos ${esc(cuando)}`
           : "No había cronómetros corriendo.");
 });
 
@@ -3002,6 +3065,10 @@ $("d-why-save").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const txt = $("d-why").value;
   setDelayReason(c, c.stage, txt, station.tech || c.claimedBy || c.tech);
+  /* Escribir "Falta material" tiene que valer lo mismo que pulsar el botón:
+     si no, el reloj sigue corriendo según cómo se escribió el motivo. */
+  const igual = ESPERAS.find(m => m.toLowerCase() === txt.trim().toLowerCase());
+  if (igual && c.espera !== igual) { c.espera = igual; if (c.running) pause(c, false); }
   toast(txt.trim()
     ? `Motivo anotado · Oscar lo verá en <b>${esc(c.brand)} ${esc(c.model)}</b>`
     : `Motivo borrado de <b>${esc(c.brand)} ${esc(c.model)}</b>`);
@@ -3011,8 +3078,9 @@ $("d-why-save").addEventListener("click", () => {
 $("d-remove").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   /* Un entregado es trabajo hecho: borrarlo borra historia. Se pregunta. */
-  if (c.delivered && !confirm(
-    `${c.brand} ${c.model} ya está entregado.\n\nEliminarlo lo saca del historial y deja de contar en las estadísticas. ¿Seguro?`)) return;
+  if (!confirm(c.delivered
+    ? `${c.brand} ${c.model} ya está entregado.\n\nEliminarlo lo saca del historial y deja de contar en las estadísticas. ¿Seguro?`
+    : `¿Eliminar ${c.brand} ${c.model} (${c.plate})?\n\nSale del taller y no cuenta en ninguna estadística.`)) return;
   const i = cars.indexOf(c);
   cars.splice(i, 1);
   toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> eliminado · no cuenta en ninguna estadística`,
