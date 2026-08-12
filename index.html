@@ -728,6 +728,50 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .ab.alta .ab-ti{color:var(--late)}
 .ab-de{font-size:11px;color:var(--muted);line-height:1.35}
 
+/* ── ENTRADA DEL TALLER ─────────────────────────────────────────────────
+   La cara del sistema para dos personas que entran todos los días: sobria,
+   la marca arriba, y nada que distraiga. */
+.login{position:fixed;inset:0;z-index:200;display:grid;place-items:center;
+  padding:24px;background:var(--rail)}
+.login[hidden]{display:none}
+.login-caja{width:min(380px,100%);background:var(--card);border:1px solid var(--line);
+  border-top:4px solid var(--rail-accent);border-radius:16px;padding:28px;
+  display:grid;gap:10px;box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.login-marca{background:#000;border:1px solid var(--rail-line);border-radius:10px;
+  padding:12px;display:grid;place-items:center;margin-bottom:6px}
+.login-marca img{height:34px;width:auto;display:block}
+.login-caja h1{margin:0;font-family:var(--disp);font-size:24px;letter-spacing:.04em;
+  text-transform:uppercase;line-height:1.1}
+.login-sub{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
+.login-caja label{font-family:var(--disp);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-top:4px}
+.login-caja input{border:1px solid var(--line);border-radius:10px;background:var(--paper);
+  padding:12px;font:inherit;color:var(--ink)}
+.login-caja input:focus{outline:2px solid var(--ink-2);outline-offset:-1px}
+.login-caja .btn{margin-top:12px}
+.login-msg{font-size:12.5px;color:var(--late);background:var(--late-bg);
+  border:1px solid var(--late);border-radius:8px;padding:8px 10px}
+.login-msg[hidden]{display:none}
+
+/* Quién está usando la pantalla, y cómo salir. */
+.quien{font-family:var(--disp);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--rail-dim);white-space:nowrap}
+.quien[hidden]{display:none}
+.salir{font:600 11px/1 var(--ui);letter-spacing:.06em;padding:9px 12px;margin-left:8px;
+  border-radius:9px;border:1px solid var(--rail-line);background:var(--rail-2);
+  color:var(--rail-ink);cursor:pointer}
+.salir[hidden]{display:none}
+.salir:hover{border-color:var(--rail-accent)}
+
+/* Aviso de conexión: sale solo cuando algo falla, y se quita solo. */
+.nube-aviso{position:fixed;top:0;left:0;right:0;z-index:150;text-align:center;
+  padding:9px 14px;background:var(--pause-hot);color:var(--on-accent);
+  font-family:var(--disp);font-size:12px;letter-spacing:.06em}
+.nube-aviso[hidden]{display:none}
+
+/* El colaborador opera el taller; no ve los números del dueño. */
+body.rol-colaborador .tabs button[data-tab="mgmt"]{display:none}
+
 /* Botón de tema */
 .themebtn{width:44px;height:44px;margin-left:8px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);font-size:17px;cursor:pointer;flex:0 0 auto}
@@ -819,7 +863,28 @@ header{max-width:100%}
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- Entrada del taller. Sólo aparece cuando el tablero está conectado a
+     Supabase; en modo demostración ni se ve. -->
+<div class="login" id="login" hidden>
+  <form class="login-caja" id="login-form">
+    <div class="login-marca">
+      <img src="assets/topcar-logo.png" alt="Topcar By LCP Group"/>
+    </div>
+    <h1>Centro de operaciones</h1>
+    <p class="login-sub">Entra con el usuario que te dieron.</p>
+    <label for="login-mail">Correo</label>
+    <input id="login-mail" type="email" autocomplete="username" required/>
+    <label for="login-pass">Contraseña</label>
+    <input id="login-pass" type="password" autocomplete="current-password" required/>
+    <button type="submit" class="btn go row">Entrar</button>
+    <div class="login-msg" id="login-msg" hidden></div>
+  </form>
+</div>
+
+<div class="nube-aviso" id="nube-aviso" hidden></div>
+
+<div class="app" id="app">
 
   <header class="rail">
     <div class="logo">
@@ -845,6 +910,8 @@ header{max-width:100%}
       <div class="station-panel" id="station-panel" hidden></div>
     </div>
     <button type="button" class="endday" id="end-day" title="Pausa todos los cronómetros del taller">Se acabó el día</button>
+    <div class="quien" id="quien-soy" hidden></div>
+    <button type="button" class="salir" id="salir" hidden>Salir</button>
     <div class="clockNow" id="now">—</div>
   </header>
 
@@ -2917,6 +2984,10 @@ $("v-list").addEventListener("click",  () => setView("list"));
 $("v-done").addEventListener("click",  () => setView("done"));
 
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  /* Esconder la pestaña no basta: el botón sigue existiendo. Aquí se
+     comprueba el rol de verdad. (Y aun así esto es comodidad de pantalla,
+     no seguridad: lo que protege los datos son los permisos del servidor.) */
+  if (b.dataset.tab === "mgmt" && enLaNube() && miRol !== "gerencia") return;
   tab = b.dataset.tab;
   document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x===b ? "true":"false"));
   $("panel-ops").hidden = tab !== "ops";
@@ -3432,18 +3503,225 @@ function restaurar(){
   } catch (e) { return false; }
 }
 
+/* ══ LA NUBE ════════════════════════════════════════════════════════════
+   Con las dos llaves de abajo puestas, el taller deja de guardar en la
+   tablet y pasa a guardar en Supabase: los mismos carros en todas las
+   pantallas, al instante, y con usuario y contraseña de verdad.
+
+   Sin llaves, el archivo sigue funcionando exactamente igual que hoy
+   (guardando en el navegador). Así el link de demostración sigue vivo.
+
+   La `anonKey` es pública a propósito: va dentro de la página. Lo que
+   protege los datos son los permisos por fila del esquema, no esconderla.
+   La `service_role` NUNCA se pone aquí. */
+const NUBE = {
+  url: "",        // https://xxxxxxxx.supabase.co
+  anonKey: "",    // la clave "anon public" del panel de Supabase
+};
+
+const enLaNube = () => !!(NUBE.url && NUBE.anonKey);
+let sb = null;              // cliente de Supabase
+let sesion = null;          // sesión abierta
+let miRol = "colaborador";  // gerencia | colaborador
+let miNombre = "";
+let guardando = false, guardarOtraVez = false, ultimoEnvio = 0;
+
+/* ── Guardar en la nube ───────────────────────────────────────────────
+   Se manda el carro completo en `estado` y aparte las columnas que hacen
+   falta para buscar y para el calendario. Se agrupa: paint() corre muchas
+   veces por segundo y no vamos a escribir en cada tick. */
+function filaDe(c){
+  return {
+    id: c.id, placa: c.plate, marca: c.brand, modelo: c.model, color: c.color,
+    cliente: c.client, telefono: c.phone, servicios: c.skus, etapa: c.stage,
+    entrego_en: c.delivered ? new Date(c.delivered).toISOString() : null,
+    cobrado_en: c.paid ? new Date(c.paid).toISOString() : null,
+    entro_en: new Date(+c.arrived).toISOString(),
+    entrega_en: new Date(+c.due).toISOString(),
+    estado: JSON.parse(JSON.stringify({
+      ...c, arrived:+c.arrived, due:+c.due, activeSubs:[...c.activeSubs] })),
+  };
+}
+
+async function nubeGuardar(){
+  if (!sb || !sesion) return;
+  if (guardando) { guardarOtraVez = true; return; }
+  guardando = true;
+  try {
+    ultimoEnvio = Date.now();
+    const { error } = await sb.from("vehiculos").upsert(cars.map(filaDe));
+    if (error) avisoNube("No se pudo guardar: " + error.message);
+    await sb.from("jornada").update({ dia_cerrado: diaCerrado || null }).eq("id", 1);
+  } catch (e) {
+    avisoNube("Sin conexión — el trabajo se guardó en esta tablet");
+  }
+  guardando = false;
+  if (guardarOtraVez) { guardarOtraVez = false; setTimeout(nubeGuardar, 400); }
+}
+
+/* ── Traer del servidor ─────────────────────────────────────────────── */
+function carroDeFila(f){
+  const o = f.estado || {};
+  const c = newCar({
+    id:o.id || f.id, brand:o.brand || f.marca, model:o.model || f.modelo,
+    color:o.color || f.color, plate:o.plate || f.placa,
+    client:o.client || f.cliente, phone:o.phone || f.telefono,
+    tech:o.tech, skus:o.skus || f.servicios || [],
+    due:new Date(o.due || f.entrega_en), arrived:new Date(o.arrived || f.entro_en),
+    stage:o.stage || f.etapa,
+  });
+  Object.assign(c, o, {
+    arrived:new Date(o.arrived || f.entro_en),
+    due:new Date(o.due || f.entrega_en),
+    activeSubs:new Set(o.activeSubs || []),
+  });
+  migrateSubs(c);
+  return c;
+}
+
+async function nubeCargar(){
+  const { data, error } = await sb.from("vehiculos").select("*");
+  if (error) { avisoNube("No se pudo leer: " + error.message); return false; }
+  cars = (data || []).map(carroDeFila);
+  const { data: j } = await sb.from("jornada").select("dia_cerrado").eq("id", 1).maybeSingle();
+  if (j && j.dia_cerrado) diaCerrado = new Date(j.dia_cerrado + "T00:00:00").toDateString();
+  return true;
+}
+
+/* Lo que hace que las tablets se vean entre sí. Se ignora el eco de lo que
+   acabamos de escribir nosotros mismos. */
+function nubeEscuchar(){
+  sb.channel("taller")
+    .on("postgres_changes", { event: "*", schema: "public", table: "vehiculos" },
+      async () => {
+        if (Date.now() - ultimoEnvio < 1500) return;   // es nuestro propio eco
+        await nubeCargar();
+        _paintOriginal();
+        if (selected && cars.find(c => c.id === selected)) open(selected);
+      })
+    .subscribe();
+}
+
+function avisoNube(txt){
+  const b = $("nube-aviso");
+  if (!b) return;
+  b.textContent = txt;
+  b.hidden = false;
+  setTimeout(() => { b.hidden = true; }, 6000);
+}
+
+/* ── Entrar ───────────────────────────────────────────────────────────
+   Dos personas: Oscar (gerencia, lo ve todo) y el gerente de operaciones
+   (colaborador, opera el taller y no ve Gerencia ni Administración). */
+function pintarEntrada(mensaje){
+  $("login").hidden = false;
+  $("app").hidden = true;
+  $("login-msg").textContent = mensaje || "";
+  $("login-msg").hidden = !mensaje;
+}
+
+async function entrar(correo, clave){
+  const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: clave });
+  if (error) { pintarEntrada("No se pudo entrar. Revisa el correo y la contraseña."); return; }
+  sesion = data.session;
+  await arrancarConSesion();
+}
+
+async function arrancarConSesion(){
+  const { data: perfil } = await sb.from("perfiles")
+    .select("nombre, rol").eq("id", sesion.user.id).maybeSingle();
+  miRol = (perfil && perfil.rol) || "colaborador";
+  miNombre = (perfil && perfil.nombre) || sesion.user.email;
+  aplicarRol();
+  $("login").hidden = true;
+  $("app").hidden = false;
+  const hubo = await nubeCargar();
+  if (!hubo || !cars.length) {
+    /* Taller nuevo: no se inventan carros. Empieza vacío y el primero que
+       entre lo mete el gerente de operaciones. */
+    cars = [];
+  }
+  nubeEscuchar();
+  _paintOriginal();
+  tick();
+  toast(`Hola ${esc(miNombre.split(" ")[0])} · los carros se ven igual en todas las pantallas`);
+}
+
+/* El colaborador opera el taller y nada más. Oscar fue explícito: "él
+   realmente no tiene que ver gerencia, no tiene que ver nada de eso". */
+function aplicarRol(){
+  const esGerencia = miRol === "gerencia";
+  document.body.classList.toggle("rol-colaborador", !esGerencia);
+  const t = document.querySelector('.tabs button[data-tab="mgmt"]');
+  if (t) t.hidden = !esGerencia;
+  if (!esGerencia && tab === "mgmt") {
+    tab = "ops";
+    $("panel-ops").hidden = false; $("panel-mgmt").hidden = true;
+    document.querySelectorAll(".tabs button").forEach(x =>
+      x.setAttribute("aria-selected", x.dataset.tab === "ops" ? "true" : "false"));
+  }
+  const quien = $("quien-soy");
+  if (quien) {
+    quien.hidden = false;
+    quien.textContent = `${miNombre} · ${esGerencia ? "Gerencia" : "Operaciones"}`;
+  }
+  $("salir").hidden = false;
+}
+
 /* Se guarda después de cada acción. paint() corre tras todo lo que cambia algo,
    así que es el sitio honesto para engancharlo. */
 const _paintOriginal = paint;
-paint = function(){ _paintOriginal.apply(this, arguments); guardar(); };
+let guardarPronto = null;
+paint = function(){
+  _paintOriginal.apply(this, arguments);
+  if (enLaNube() && sesion) {
+    clearTimeout(guardarPronto);
+    guardarPronto = setTimeout(nubeGuardar, 700);
+  } else {
+    guardar();
+  }
+};
 
-if (restaurar()) {
-  toast("Se recuperó el trabajo de esta tablet · nada se perdió al recargar");
+async function arrancar(){
+  if (!enLaNube()) {
+    /* Modo demostración: todo igual que hasta hoy, en esta tablet. */
+    if (restaurar()) toast("Se recuperó el trabajo de esta tablet · nada se perdió al recargar");
+    paint(); tick(); setInterval(tick, 1000);
+    return;
+  }
+  /* El cliente de Supabase se baja sólo cuando hace falta: en modo
+     demostración la página no carga nada de fuera. */
+  const listo = await new Promise(res => {
+    if (window.supabase) return res(true);
+    const t = document.createElement("script");
+    t.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+    t.onload = () => res(true);
+    t.onerror = () => res(false);
+    document.head.appendChild(t);
+  });
+  if (!listo) { pintarEntrada("No hay internet para conectar con el taller."); return; }
+  try {
+    sb = window.supabase.createClient(NUBE.url, NUBE.anonKey);
+  } catch (e) {
+    pintarEntrada("No se pudo conectar con el servidor del taller.");
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  setInterval(tick, 1000);
+  if (data && data.session) { sesion = data.session; await arrancarConSesion(); }
+  else pintarEntrada("");
 }
 
-paint();
-tick();
-setInterval(tick, 1000);
+$("login-form").addEventListener("submit", e => {
+  e.preventDefault();
+  entrar($("login-mail").value.trim(), $("login-pass").value);
+});
+$("salir").addEventListener("click", async () => {
+  if (sb) await sb.auth.signOut();
+  location.reload();
+});
+
+arrancar();
 </script>
   <div class="toasts" id="toasts"></div>
 </body>
