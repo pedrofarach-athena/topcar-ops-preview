@@ -238,6 +238,18 @@ main{padding:16px 20px 28px;min-width:0}
 .pill.free{background:var(--pause-hot);color:var(--on-accent)}
 .pill.run .dot,.pill.pause .dot,.pill.late .dot,.pill.free .dot{background:currentColor}
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* La nota que escribió una persona, en la tarjeta. Es lo que hay que saber
+   del carro antes de tocarlo: si vive escondida en la ficha, no se lee. */
+.card .nota{
+  display:flex;gap:7px;margin-top:9px;padding:7px 9px;border-radius:8px;
+  background:var(--chip-bg);border-left:3px solid var(--accent);
+  font-size:11.5px;line-height:1.35;color:var(--ink-2)
+}
+.card .nota b{font-weight:600;color:var(--ink)}
+.card .nota .txt{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;min-width:0
+}
 .card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
 .card .who{font-size:11px;color:var(--muted)}
 .empty{color:var(--muted);font-size:12px;padding:10px 4px}
@@ -315,6 +327,26 @@ body.card-open .veil{display:block}
 .hero .st{margin-top:10px;display:flex;justify-content:center}
 .hero .of{font-size:11.5px;color:var(--muted);margin-top:10px}
 .hero .of.late{color:var(--late)}
+
+/* ENTREGA ACORDADA — el semáforo del técnico, debajo del reloj grande. */
+.entrega{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border:2px solid var(--line);border-left-width:8px;border-radius:12px;padding:16px 18px;
+  background:var(--card)
+}
+.entrega .e-k{font-family:var(--disp);font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.entrega .e-v{font-family:var(--disp);font-size:28px;font-weight:700;letter-spacing:.02em;
+  line-height:1.1;margin-top:5px;color:var(--ink)}
+.entrega .e-f{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums;
+  white-space:nowrap;font-weight:700}
+.entrega.ok  {border-color:var(--run);   background:var(--run-bg)}
+.entrega.ok   .e-f{color:var(--run)}
+.entrega.pron{border-color:var(--pause-hot); background:var(--pause-bg)}
+.entrega.pron .e-f{color:var(--pause)}
+.entrega.tarde{border-color:var(--late-hot); background:var(--late-bg)}
+.entrega.tarde .e-f{color:var(--late)}
+.entrega.tarde .e-v{color:var(--late)}
 
 .act{display:grid;gap:8px}
 .btn{
@@ -855,8 +887,12 @@ header{max-width:100%}
           <div class="t" id="d-hero-t">0:00:00</div>
           <div class="st"><span class="pill" id="d-pill">Sin iniciar</span></div>
           <div class="of" id="d-hero-of"></div>
-          <div class="of" id="d-hero-due"></div>
         </div>
+
+        <!-- La entrega, pegada al cronómetro: es lo que el técnico necesita
+             saber antes de tocar nada. Verde en tiempo, ámbar si aprieta,
+             rojo si se pasó. Antes vivía escondida dentro de "Ficha". -->
+        <div class="entrega" id="d-hero-due"></div>
 
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
@@ -908,17 +944,8 @@ header{max-width:100%}
         </div>
 
         <details class="more" id="d-more">
-          <summary id="d-more-s">Ficha del vehículo</summary>
+          <summary id="d-more-s">Responsable del vehículo</summary>
           <div class="inner">
-
-            <div class="sec">
-              <div class="lbl">Entrega acordada al cliente</div>
-              <div class="miniline" id="d-due">
-                <span class="k" id="d-due-s">—</span>
-                <span class="v" id="d-due-v">—</span>
-              </div>
-            </div>
-
 
             <div class="sec">
               <div class="lbl">Responsable</div>
@@ -1080,7 +1107,8 @@ const SHOP = {
       "Cortando la lámina","Ploteo de piezas","Revisión de pintura para instalar PPF","En preparación"],
     "En proceso": ["Corrección de pintura","Aplicación de Modesta","Curado de Modesta con lámparas IR",
       "Instalación de PPF","Tiempo de secado al sol","Instalando","En reparación",
-      "En cabina de pintura","Repulido y brillado","Arme","Instalación de accesorios"],
+      "En cabina de pintura","Repulido y brillado","Arme","Instalación de accesorios",
+      "Remoción de manchas de cristales"],
     "Control de calidad": ["Lavado y detallado","Revisado y listo"],
     "Listo": []
   },
@@ -1089,9 +1117,10 @@ const SHOP = {
      cada paso. Esto es lo que Oscar ajusta con su experiencia. */
   services: {
     "Modesta Coatings": {
-      /* Los cuatro que Oscar dictó en la reunión 2. "Corin": confirmar con él
-         si es modelo aparte o parte del nombre completo. */
-      skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T","Modesta Corin"],
+      /* Los cuatro que Oscar escribió él mismo en su correo del 7-ago:
+         "Estos 4 servicios de Modesta Coatings". "Corin" venía de la
+         transcripción de la llamada y era el mismo BC-T mal oído. */
+      skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T"],
       slaDays: 2,
       steps:[["Lavado",0.75],["Descontaminación de pintura",1],["Corrección de pintura",3],
              ["Aplicación de Modesta",2.5],["Curado de Modesta con lámparas IR",2],["Revisado y listo",0.5]]
@@ -1109,7 +1138,7 @@ const SHOP = {
       steps:[["Cortando la lámina",0.75],["Instalando",1.5],["Revisado y listo",0.5]]
     },
     "Pintura automotriz": {
-      skus:["Pintura P/P sin desabolladura","Pintura P/P reparación","Pintura P/P salvamento","Pintura veh. completo","Pintura P/P de aros","Brillado P/P de aros","Pintura de P/P de callipers"],
+      skus:["Pintura P/P sin desabolladura","Pintura P/P reparación","Pintura P/P salvamento","Pintura veh. completo","Pintura P/P de aros","Brillado P/P de aros","Pintura de P/P de callipers","Blackout Package"],
       slaDays: null,
       steps:[["Desarme",2],["Desmonte de aros",0.5],["En reparación",5],["En preparación",3],
              ["En cabina de pintura",5],["Repulido y brillado",2.5],["Arme",2],["Lavado y detallado",1],["Revisado y listo",0.5]]
@@ -1120,10 +1149,22 @@ const SHOP = {
       steps:[["Desarme",2],["Desmonte de aros",0.5],["En reparación",5],["En preparación",3],
              ["En cabina de pintura",5],["Repulido y brillado",2.5],["Arme",2],["Lavado y detallado",1],["Revisado y listo",0.5]]
     },
+    /* Faltaba poder vender un lavado suelto: no todo el que entra al taller
+       viene por un PPF. Cada uno se cobra por separado o combinados.
+       Tiempos: punto de partida, Oscar los ajusta con su experiencia. */
+    "Detailing": {
+      skus:["Lavado","Descontaminación de pintura",
+            "Remoción de manchas de cristales","Corrección de pintura"],
+      slaHours: 4,
+      steps:[["Lavado",0.75],["Descontaminación de pintura",1],
+             ["Remoción de manchas de cristales",1],["Corrección de pintura",3],
+             ["Revisado y listo",0.5]]
+    },
     /* Oscar lo mandó la mañana del 2026-08-12: alfombras WeatherTech. Familia
        nueva para que quepan los accesorios que vengan después. */
     "Accesorios": {
-      skus:["Alfombras WeatherTech 1ra fila","Alfombras WeatherTech 2da fila"],
+      skus:["Alfombras WeatherTech 1ra fila","Alfombras WeatherTech 2da fila",
+            "Alfombras tipo bandeja"],
       slaHours: 2,
       steps:[["Instalación de accesorios",0.5],["Revisado y listo",0.25]]
     }
@@ -1715,6 +1756,32 @@ function dueText(c){
   const p = dueParts(c);
   return `${p.late?"−":""}${p.d}d ${p.h}h ${p.m}m`;
 }
+/* La fecha tal cual se la prometieron al cliente: "mié 13-ago · 2:00 p. m." */
+function dueFecha(c){
+  return c.due.toLocaleString("es-DO", { weekday:"short", day:"2-digit", month:"short" })
+       + " · " + c.due.toLocaleString("es-DO", { hour:"2-digit", minute:"2-digit" });
+}
+/* El semáforo de la entrega, debajo del cronómetro. Un solo sitio decide el
+   color y el texto para que la ficha no se contradiga al pasar los segundos. */
+function renderEntrega(c){
+  const el = $("d-hero-due");
+  if (!el) return;
+  const p = dueParts(c);
+  const enListo = c.stage === "Listo" || !!c.delivered;
+  const tarde = p.late && !enListo;
+  const quedaMs = c.due - Date.now();
+  const pronto = !tarde && !enListo && quedaMs < SHOP.alerts.promiseRiskH * H;
+  el.className = "entrega " + (tarde ? "tarde" : pronto ? "pron" : "ok");
+  el.innerHTML = `<div>
+      <div class="e-k">Entrega acordada con el cliente</div>
+      <div class="e-v">${esc(dueFecha(c))}</div>
+    </div>
+    <div class="e-f">${c.delivered
+      ? "entregado"
+      : tarde ? "pasada por " + esc(dueText(c).replace("−",""))
+      : p.late ? "esperando que lo recojan"
+      : "faltan " + esc(dueText(c))}</div>`;
+}
 
 /* ---------- demo data ---------- */
 const now = Date.now();
@@ -1998,6 +2065,15 @@ function renderAreas(){
   }).join("");
 }
 
+/* La última nota de PERSONA. Las viejas (guardadas antes de que existiera la
+   marca `manual`) se reconocen porque no llevan `stage`: las del sistema
+   siempre lo traen. */
+function ultimaNota(c){
+  const suyas = (c.notes || []).filter(n =>
+    n.manual === true || (n.manual === undefined && !n.stage && !/^(El cliente recogió|Entró al taller|Cobrado)/.test(n.text || "")));
+  return suyas.length ? suyas[suyas.length - 1] : null;
+}
+
 /* ---------- render: board ---------- */
 function cardHtml(c){
   const st = stateOf(c);
@@ -2026,6 +2102,14 @@ function cardHtml(c){
         : `en tiempo · debía durar ${short(tg)}`}</div>`;
     })()}
     ${c.changes.length ? `<div class="chips"><span class="chg">Servicio cambiado</span></div>` : ""}
+    ${(() => {
+      /* La última nota escrita por una persona — la de entrada o la que puso
+         el técnico. Los avisos del sistema no cuentan como nota. */
+      const n = ultimaNota(c);
+      if (!n) return "";
+      return `<div class="nota"><span class="txt"><b>${esc(n.who || "Nota")}:</b>
+        ${esc(n.text)}</span></div>`;
+    })()}
     ${subs.length || st === "run" ? `<div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
                     : `<span class="tag sub">Sin subetapa</span>`}
@@ -2318,9 +2402,7 @@ function open(id){
     ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
     : `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)}`;
   const dp = dueParts(c);
-  const dueEl = $("d-hero-due");
-  dueEl.classList.toggle("late", dp.late && c.stage !== "Listo");
-  dueEl.textContent = dp.late ? `Pasó la entrega por ${dueText(c).replace("−","")}` : `Faltan ${dueText(c)} para la entrega`;
+  renderEntrega(c);
 
   const prim = $("d-primary");
   const fin = $("d-finish");
@@ -2433,15 +2515,18 @@ function open(id){
          <span class="lg-d">${short(tCasa)}</span><span class="lg-t"></span></div>`
       + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} sin registrar en ningún cronómetro</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
   }
-  $("d-more-s").textContent = `Entrega acordada y responsable`;
-  $("d-due").classList.toggle("bad", dp.late);
-  $("d-due-v").textContent = dueText(c);
-  $("d-due-s").textContent = c.due.toLocaleString("es-DO",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+  $("d-more-s").textContent = `Responsable del vehículo`;
 
   $("d-svc").innerHTML = c.skus.map(s => `<span class="tag">${esc(shortSku(s))}</span>`).join("");
   $("d-tech-v").textContent = c.tech;
 
-  $("d-notes").innerHTML = c.notes.slice().reverse().map(n =>
+  /* Solo lo que escribió una persona. Los movimientos del sistema (tomó el
+     trabajo, pausado, etapa terminada) ya están en la hoja de vida; mezclados
+     aquí enterraban la nota de entrada, que es la que hay que leer. */
+  const suyas = (c.notes || []).filter(n =>
+    n.manual === true || (n.manual === undefined && !n.stage
+      && !/^(El cliente recogió|Entró al taller|Cobrado)/.test(n.text || "")));
+  $("d-notes").innerHTML = suyas.slice().reverse().map(n =>
     `<div class="note"><span class="w">${new Date(n.at).toLocaleString("es-DO")} · ${esc(n.who)}</span>${esc(n.text)}</div>`
   ).join("") || `<div class="note"><span class="w">Sin notas</span>Escribe lo que pasó en este proceso.</div>`;
 }
@@ -2499,8 +2584,7 @@ function tick(){
       $("d-hero-of").textContent = c.delivered
         ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
         : `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)}`;
-      const p = dueParts(c);
-      $("d-hero-due").textContent = p.late ? `Pasó la entrega por ${dueText(c).replace("−","")}` : `Faltan ${dueText(c)} para la entrega`;
+      renderEntrega(c);
     }
   }
 }
@@ -2700,7 +2784,7 @@ $("d-subs-more").addEventListener("click", () => {
 $("d-note-add").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const t = ($("d-note").value || "").trim(); if (!t) return;
-  c.notes.push({ at:Date.now(), who:c.tech, text:t });
+  c.notes.push({ at:Date.now(), who:c.tech, text:t, manual:true });
   $("d-note").value = "";
   open(c.id);
 });
@@ -2853,8 +2937,11 @@ $("m-save").addEventListener("click", () => {
     });
     c.notes.push({ at:Date.now(), who:c.tech,
       text:`Entró al taller. Contrató: ${[...mSkus].join(", ")}. El cronómetro arranca cuando alguien pulse Iniciar.` });
+    /* manual = la escribió una persona. Las que pone el sistema (tomó el
+       trabajo, pausado, terminada…) no son notas: son historial. Solo las
+       de persona salen en la tarjeta del tablero. */
     const first = val("m-note");
-    if (first) c.notes.push({ at:Date.now(), who:c.tech, text:first });
+    if (first) c.notes.push({ at:Date.now(), who:c.tech, text:first, manual:true });
     cars.push(c);
     closeModal(); open(c.id); paint();
     return;
