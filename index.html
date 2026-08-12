@@ -882,7 +882,7 @@ header{max-width:100%}
           <table>
             <thead>
               <tr>
-                <th>Vehículo</th><th>Cliente</th><th>Etapa</th><th>Subetapas</th>
+                <th>Vehículo</th><th>Cliente</th><th>Qué lleva</th><th>Etapa</th><th>Subetapas</th>
                 <th>Tiempo en etapa</th><th>Trabajo</th><th>En el taller</th><th>Estado</th><th>Entrega</th>
               </tr>
             </thead>
@@ -2393,6 +2393,8 @@ function renderList(){
       <td><div class="strong">${esc(c.brand)} ${esc(c.model)}</div>
           <div class="sub" style="font-size:11px;color:var(--muted)">${esc(c.color)} · ${esc(c.plate)}</div></td>
       <td>${esc(c.client)}</td>
+      <!-- Oscar: "aquí no aparece lo que se le está haciendo al vehículo" -->
+      <td>${c.skus.map(x => `<span class="tag">${esc(x)}</span>`).join(" ") || "—"}</td>
       <td>${esc(c.stage)}</td>
       <td>${[...c.activeSubs].join(" · ") || "—"}</td>
       <td class="mono">${hms(stageMs(c))}</td>
@@ -2401,7 +2403,7 @@ function renderList(){
       <td><span class="pill ${st==="run"?"run":st==="pause"?"pause":""}"><span class="dot"></span>${esc(stateLabel(c))}</span></td>
       <td class="mono" style="${p.late?"color:var(--late)":""}">${dueText(c)}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="9" style="color:var(--muted)">Sin resultados</td></tr>`;
+  }).join("") || `<tr><td colspan="10" style="color:var(--muted)">Sin resultados</td></tr>`;
   $("list-b").querySelectorAll("tr[data-id]").forEach(tr => tr.addEventListener("click", () => open(tr.dataset.id)));
 }
 
@@ -2835,6 +2837,16 @@ function tick(){
 $("q").addEventListener("input", paint);
 function setView(v){
   view = v;
+  /* Tablero / Lista / Entregados viven en Operaciones. Si se tocan estando en
+     Gerencia no pasaba nada y parecía roto — Oscar en la reunión: "no hace
+     nada… para que haga algo, tengo que dar operaciones". */
+  if (tab !== "ops") {
+    tab = "ops";
+    document.querySelectorAll(".tabs button").forEach(x =>
+      x.setAttribute("aria-selected", x.dataset.tab === "ops" ? "true" : "false"));
+    $("panel-ops").hidden = false;
+    $("panel-mgmt").hidden = true;
+  }
   ["board","list","done"].forEach(k => $("v-"+k).classList.toggle("on", k === v));
   paint();
 }
