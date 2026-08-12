@@ -194,16 +194,18 @@ main{padding:16px 20px 28px;min-width:0}
    detalle fino lo dicen la píldora y el reloj. Antes hablaba por dos filos
    (izquierda estado, derecha tarde) y leía a ruido. */
 .card{
-  background:var(--card);border:1.5px solid var(--line);
+  background:var(--card);border:2.5px solid var(--line);
   border-radius:10px;padding:12px;cursor:pointer;transition:transform .08s ease,box-shadow .08s ease;
 }
 .card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
 .card.sel{outline:2px solid var(--ink);outline-offset:1px}
-.card.is-run{border-color:var(--run)}
-.card.is-pause{border-color:var(--hold)}
-.card.is-free{border-color:var(--pause)}
+/* Sólido, que se vea del otro lado del taller: borde grueso Y la tarjeta
+   teñida del color del estado. Pedro: "los colores más sólidos". */
+.card.is-run{border-color:var(--run);background:var(--run-bg)}
+.card.is-pause{border-color:var(--hold);background:var(--hold-bg)}
+.card.is-free{border-color:var(--pause);background:var(--pause-bg)}
 .card.is-done{border-color:var(--line)}
-.card.is-late{border-color:var(--late)}
+.card.is-late{border-color:var(--late);background:var(--late-bg)}
 .card .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
 .card .sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
 /* La placa como placa: se reconoce de un golpe, como en el parqueo. */
