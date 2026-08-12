@@ -189,15 +189,21 @@ main{padding:16px 20px 28px;min-width:0}
 .col-h em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:0}
 .col-b{padding:10px;display:flex;flex-direction:column;gap:10px}
 
+/* UNA tarjeta, UN color: el borde completo dice lo más urgente (tarde > sin
+   tomar > trabajando > pausado) y se lee desde el otro lado del taller. El
+   detalle fino lo dicen la píldora y el reloj. Antes hablaba por dos filos
+   (izquierda estado, derecha tarde) y leía a ruido. */
 .card{
-  background:var(--card);border:1px solid var(--line);border-left:4px solid var(--idle);
+  background:var(--card);border:1.5px solid var(--line);
   border-radius:10px;padding:12px;cursor:pointer;transition:transform .08s ease,box-shadow .08s ease;
 }
 .card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
 .card.sel{outline:2px solid var(--ink);outline-offset:1px}
-.card.is-run{border-left-color:var(--run)}
-.card.is-pause{border-left-color:var(--hold)}
-.card.is-late{box-shadow:inset -4px 0 0 var(--late)}
+.card.is-run{border-color:var(--run)}
+.card.is-pause{border-color:var(--hold)}
+.card.is-free{border-color:var(--pause)}
+.card.is-done{border-color:var(--line)}
+.card.is-late{border-color:var(--late)}
 .card .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
 .card .sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
 /* La placa como placa: se reconoce de un golpe, como en el parqueo. */
@@ -433,7 +439,7 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .leyenda span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .leyenda i{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
 .leyenda .lg-run{background:var(--run)}
-.leyenda .lg-free{border:2px dashed var(--pause)}
+.leyenda .lg-free{background:var(--pause)}
 .leyenda .lg-hold{background:var(--hold)}
 .leyenda .lg-late{background:var(--late)}
 .vida{display:flex;flex-direction:column;gap:0}
@@ -505,8 +511,6 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 }
 
 /* ── v10: tomar / esperar / terminar, y tablets por área ── */
-.card.is-free{border-left-style:dashed;border-left-color:var(--pause)}
-.card.is-done{border-left-color:var(--run-hot)}
 .card.is-free .big{color:var(--pause)}
 .station{margin-left:8px}
 #station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
