@@ -268,17 +268,22 @@ tbody tr:hover{background:var(--chip-bg)}
 .meter i{display:block;height:100%;background:var(--ink)}
 .rowbar .num{font-family:var(--mono);text-align:right;color:var(--ink-2)}
 
-/* ---------- Drawer ----------
-   El panel FLOTA encima del tablero en todos los tamaños. Cuando empujaba el
-   tablero de lado, las columnas se aplastaban y se cortaban (el bug que Pedro
-   vio en su pantalla); flotando, el tablero queda intacto detrás. */
+/* ---------- Ficha del carro ----------
+   Ventana GRANDE y CENTRADA flotando sobre el tablero (Pedro: "que se abra
+   en el medio, no de un lado"). El tablero queda vivo detrás: tocar otro
+   carro lo abre directo, sin cerrar primero. En teléfono ocupa todo. */
 aside{
-  background:var(--card);border-left:1px solid var(--line);display:none;
+  background:var(--card);border:1px solid var(--line);display:none;
   flex-direction:column;min-height:0;overflow:auto;
-  position:fixed;inset:0 0 0 auto;width:min(100vw,440px);z-index:30;
-  box-shadow:-16px 0 44px rgba(0,0,0,.28)
+  position:fixed;inset:0;margin:auto;z-index:31;
+  width:min(760px,94vw);height:min(88vh,940px);
+  border-radius:16px;
+  box-shadow:0 30px 90px rgba(0,0,0,.45)
 }
 .wrap.open aside{display:flex}
+/* El velo detrás: separa la ficha del tablero y da dónde tocar para cerrar. */
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:none}
+body.card-open .veil{display:block}
 .d-h{background:var(--rail);color:var(--rail-ink);padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
   border-bottom:2px solid var(--rail-accent)}
 .d-h h2{margin:0;font-family:var(--disp);font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
@@ -286,6 +291,21 @@ aside{
 .d-h .p{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
 .x{background:transparent;border:0;color:var(--muted);font-size:24px;line-height:1;padding:2px 6px}
 .d-b{padding:18px;display:flex;flex-direction:column;gap:18px}
+/* Ficha ancha: dos columnas REALES (no grid de filas, que dejaba huecos
+   cuando un lado era más corto). Izquierda lo que se consulta, derecha la
+   cadena de etapas. Lo que se ACTÚA queda a lo ancho, arriba y abajo. */
+/* Primero lo que se TOCA (relojes, botones, etapas, subetapas); después lo
+   que se CONSULTA (hoja de vida, ficha, notas). .d-b es flex column, así
+   que el orden se ajusta sin mover el HTML. */
+.s-vida{order:1} .s-notas{order:2} details.more{order:3} #d-remove{order:4}
+.d-par{display:grid;grid-template-columns:1fr;gap:18px}
+.d-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (min-width:760px){
+  .d-par{grid-template-columns:1fr 1fr;gap:18px}
+  /* En media columna el desglose por etapa respira sin columnas fijas. */
+  .lg{grid-template-columns:1fr auto auto;gap:8px;font-size:11.5px}
+  .lg-t{display:none}
+}
 
 .hero{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center}
 .hero .lbl{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
@@ -681,7 +701,8 @@ body.station-on .board .col{min-width:0}
   .card .big{font-size:30px}
   .tabs button{min-height:44px}
   .newbtn{min-height:48px;width:100%}
-  .drawer{width:100%!important;max-width:100%!important}
+  /* En el teléfono la ficha es pantalla completa. */
+  aside{width:100vw;height:100vh;border-radius:0;inset:0;margin:0}
   .ov{grid-template-columns:1fr auto;gap:4px}
   .ov-st,.ov-who{font-size:10.5px}
   .step{grid-template-columns:24px 1fr auto;min-height:56px}
@@ -833,29 +854,33 @@ header{max-width:100%}
         <button type="button" class="btn alt row" id="d-paid" hidden>Marcar cobrado</button>
         <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió</button>
 
-        <div class="sec">
+                        <div class="sec s-vida">
+          <div class="lbl">Hoja de vida</div>
+          <div class="vida" id="d-vida"></div>
+        </div>
+
+                <div class="d-par">
+  <div class="d-col">
+<div class="sec s-svc">
           <div class="lbl">Servicios contratados</div>
           <div class="chips" id="d-svc" style="display:flex;flex-wrap:wrap;gap:4px"></div>
           <button type="button" class="btn alt row" id="d-svc-edit">Cambiar lo que pidió el cliente</button>
           <div class="chglog" id="d-chg"></div>
         </div>
-
-        <div class="sec">
+<div class="sec s-ledger">
           <div class="lbl">Tiempo por etapa</div>
           <div class="ledger" id="d-ledger"></div>
         </div>
-
-        <div class="sec">
-          <div class="lbl">Hoja de vida</div>
-          <div class="vida" id="d-vida"></div>
-        </div>
-
-        <div class="sec">
+  </div>
+  <div class="d-col">
+<div class="sec s-stepper">
           <div class="lbl">Etapas · toca para mover el carro</div>
           <div class="stepper" id="d-stepper"></div>
         </div>
+  </div>
+</div>
 
-        <div class="sec">
+        <div class="sec s-subs">
           <div class="lbl">Subetapas</div>
           <div class="whybox" id="d-whybox" hidden>
             <div class="why-h">Va pasado de tiempo. ¿Por qué?</div>
@@ -895,7 +920,7 @@ header{max-width:100%}
           </div>
         </details>
 
-        <div class="sec">
+        <div class="sec s-notas">
           <div class="lbl">Notas del técnico</div>
           <div class="notes" id="d-notes"></div>
           <div class="noteform">
@@ -910,6 +935,8 @@ header{max-width:100%}
     </aside>
   </div>
 </div>
+
+<div class="veil" id="veil"></div>
 
 <div class="modal" id="modal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
@@ -2218,6 +2245,7 @@ function open(id){
   if (selected !== id) { subsOpen = false; showAllSubs = false; $("d-more").open = false; }
   selected = id;
   $("wrap").classList.add("open");
+  document.body.classList.add("card-open");
 
   $("d-name").textContent = `${c.brand} ${c.model}`;
   $("d-color").textContent = c.color;
@@ -2391,6 +2419,7 @@ function open(id){
 function close(){
   selected = null;
   $("wrap").classList.remove("open");
+  document.body.classList.remove("card-open");
   paint();
 }
 
@@ -2466,6 +2495,8 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 $("d-x").addEventListener("click", close);
+/* Tocar fuera de la ficha la cierra — como cualquier ventana. */
+$("veil").addEventListener("click", close);
 
 $("theme-btn").addEventListener("click", cycleTheme);
 
