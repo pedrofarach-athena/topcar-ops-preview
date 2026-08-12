@@ -654,7 +654,11 @@ body.tv-on .newbtn,body.tv-on .endday,body.tv-on #station-box{visibility:hidden}
 /* Desktop / tablet: kanban que se desliza, nunca se aplasta. */
 .board{overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
   scrollbar-width:thin;padding-bottom:6px}
-.board .col{scroll-snap-align:start;min-width:272px}
+/* 240 y no 272: con 272 las cinco columnas sumaban 1408 px y en una pantalla
+   de 1440 la última ("Listo") quedaba cortada por unos píxeles — justo la
+   etapa que cierra el negocio. A 240 las cinco caben y el reparto 1fr las
+   sigue dejando anchas. */
+.board .col{scroll-snap-align:start;min-width:240px}
 body.station-on .board{overflow-x:visible}
 body.station-on .board .col{min-width:0}
 
@@ -677,7 +681,7 @@ body.station-on .board .col{min-width:0}
   .board .col{min-width:0}
 }
 /* iPad horizontal (1024) y ventanas medianas: tres columnas. */
-@media (max-width:1200px) and (min-width:981px){
+@media (max-width:1300px) and (min-width:981px){
   .board{grid-template-columns:repeat(3,minmax(0,1fr));overflow-x:visible}
   .board .col{min-width:0}
 }
