@@ -49,6 +49,12 @@
   --rail-line:#3A3A40;
   --rail-on-bg:#FAFAFA;
   --rail-on-fg:#0A0A0B;
+  /* El acento de MARCA: dorado champán, detailing premium. Solo para momentos
+     de identidad (barra, lema, KPI insignia) — NUNCA para estados: los estados
+     son verde/ámbar/gris/rojo y no se comparten. El de la barra no se invierte
+     con el tema, igual que los --rail-*. */
+  --accent:#A0812F;
+  --rail-accent:#D6B36A;
 }
 @media (prefers-color-scheme: dark){
   /* "Sistema" no hacía nada: sin esta regla siempre caía en claro. */
@@ -64,6 +70,7 @@
     --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.45);
     --btn-bg:#FAFAFA; --btn-fg:#0A0A0B; --btn-bg-hi:#D4D4D8;
     --chip-bg:#232327; --track:rgba(255,255,255,.14); --on-accent:#0A0A0B;
+    --accent:#D6B36A;
   }
 }
 :root[data-theme="dark"]{
@@ -89,6 +96,7 @@
   --chip-bg:#232327;
   --track:rgba(255,255,255,.14);
   --on-accent:#0A0A0B;
+  --accent:#D6B36A;   /* el dorado sube de luz sobre fondo oscuro */
   /* Los tokens --rail-* NO se redefinen aquí a propósito:
      la barra es oscura en ambos temas, así que su texto no debe cambiar. */
 }
@@ -108,11 +116,14 @@ button{cursor:pointer;border-radius:8px}
 .rail{
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   padding:12px 20px;background:var(--rail);color:var(--rail-ink);
+  border-bottom:2px solid var(--rail-accent);   /* la firma dorada de la casa */
 }
 .logo{display:flex;align-items:center;gap:12px;min-width:0}
 .logo .mark{background:#000;border:1px solid var(--rail-line);padding:8px 12px;border-radius:8px;display:flex}
 .logo img{height:30px;width:auto;display:block}
-.logo b{font-family:var(--disp);font-size:22px;letter-spacing:.02em;text-transform:none;font-weight:700;white-space:nowrap;line-height:1}
+/* El lema en blanco: el dorado es para FILOS (líneas, bordes), nunca para
+   texto — en letra lee a amarillo barato, no a champán. */
+.logo b{font-family:var(--disp);font-size:22px;letter-spacing:.02em;text-transform:none;font-weight:700;white-space:nowrap;line-height:1;color:var(--rail-ink)}
 .logo span{display:block;font-size:10.5px;letter-spacing:.10em;text-transform:none;color:var(--rail-dim);margin-top:2px;font-weight:600}
 .rail-sp{flex:1}
 .rail input{
@@ -134,7 +145,10 @@ button{cursor:pointer;border-radius:8px}
   background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
 }
 .kpi .k{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.kpi.hero{border-color:var(--ink);box-shadow:var(--shadow)}
+.kpi.hero{border-color:var(--accent);box-shadow:var(--shadow)}
+/* Los KPIs viven dentro de Gerencia: sin el padding de página que traían. */
+#panel-mgmt .kpis{padding:0;margin-bottom:12px}
+#panel-mgmt #alertband{margin-bottom:12px}
 .kpi .v{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:11px;color:var(--muted);margin-top:4px}
 .kpi.run .v{color:var(--run)}
@@ -143,7 +157,6 @@ button{cursor:pointer;border-radius:8px}
 
 /* ---------- Layout ---------- */
 .wrap{display:grid;grid-template-columns:1fr;gap:0;flex:1;min-height:0}
-.wrap.open{grid-template-columns:1fr minmax(360px,440px)}
 main{padding:16px 20px 28px;min-width:0}
 .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .tabs button{
@@ -153,6 +166,17 @@ main{padding:16px 20px 28px;min-width:0}
 }
 .tabs button[aria-selected="true"]{background:var(--btn-bg);color:var(--btn-fg)}
 .hint{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+
+/* ---------- Pulso por área (entrada) ---------- */
+.areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
+.area{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;
+  display:flex;flex-direction:column;gap:2px}
+.area .a-k{font-family:var(--disp);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.area .a-n{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.area .a-n em{font-style:normal;font-family:var(--font);font-size:11px;font-weight:400;color:var(--muted);margin-left:4px}
+.area .a-s{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.area.has-free{border-left:3px solid var(--pause)}   /* hay carros sin tomar aquí */
 
 /* ---------- Board ---------- */
 .board{display:grid;grid-template-columns:repeat(5,minmax(210px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
@@ -175,7 +199,10 @@ main{padding:16px 20px 28px;min-width:0}
 .card.is-pause{border-left-color:var(--hold)}
 .card.is-late{box-shadow:inset -4px 0 0 var(--late)}
 .card .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
-.card .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.card .sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
+/* La placa como placa: se reconoce de un golpe, como en el parqueo. */
+.plate{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;
+  border:1px solid var(--line);border-radius:4px;padding:1px 6px;background:var(--chip-bg);color:var(--ink-2)}
 .card .big{
   font-family:var(--mono);font-size:26px;font-weight:600;margin-top:10px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;
 }
@@ -194,8 +221,11 @@ main{padding:16px 20px 28px;min-width:0}
   background:var(--idle-bg);color:var(--idle)
 }
 .pill.run{background:var(--run-bg);color:var(--run)}
-.pill.pause{background:var(--pause-bg);color:var(--pause)}
+/* Un color, un significado: ámbar = SIN TOMAR (nadie encima), gris pizarra =
+   PAUSADO/overnight. La píldora de pausa salía ámbar y confundía los dos. */
+.pill.pause{background:var(--hold-bg);color:var(--hold)}
 .pill.late{background:var(--late-bg);color:var(--late)}
+.pill.free{background:var(--pause-bg);color:var(--pause)}
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
 .card .who{font-size:11px;color:var(--muted)}
@@ -218,20 +248,28 @@ tbody tr:hover{background:var(--chip-bg)}
 /* ---------- Gerencia ---------- */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-.box h2{margin:0 0 12px;font-family:var(--disp);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+.box h2{margin:0 0 12px;font-family:var(--disp);font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px}
+.box h2::before{content:"";width:3px;height:14px;background:var(--accent);border-radius:2px;flex:0 0 auto}
 .rowbar{display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px}
 .rowbar .lbl{display:flex;justify-content:space-between;gap:8px}
 .meter{height:6px;background:var(--track);border-radius:999px;overflow:hidden;margin-top:5px}
 .meter i{display:block;height:100%;background:var(--ink)}
 .rowbar .num{font-family:var(--mono);text-align:right;color:var(--ink-2)}
 
-/* ---------- Drawer ---------- */
+/* ---------- Drawer ----------
+   El panel FLOTA encima del tablero en todos los tamaños. Cuando empujaba el
+   tablero de lado, las columnas se aplastaban y se cortaban (el bug que Pedro
+   vio en su pantalla); flotando, el tablero queda intacto detrás. */
 aside{
   background:var(--card);border-left:1px solid var(--line);display:none;
-  flex-direction:column;min-height:0;max-height:100vh;position:sticky;top:0;overflow:auto
+  flex-direction:column;min-height:0;overflow:auto;
+  position:fixed;inset:0 0 0 auto;width:min(100vw,440px);z-index:30;
+  box-shadow:-16px 0 44px rgba(0,0,0,.28)
 }
 .wrap.open aside{display:flex}
-.d-h{background:var(--rail);color:var(--rail-ink);padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.d-h{background:var(--rail);color:var(--rail-ink);padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+  border-bottom:2px solid var(--rail-accent)}
 .d-h h2{margin:0;font-family:var(--disp);font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
 .d-h .c{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
 .d-h .p{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
@@ -374,9 +412,17 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .whybox textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
   background:var(--card);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
 .why-saved{font-size:12px;color:var(--ink-2)}
-#d-remove{color:var(--late);align-self:flex-start}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 .btn.alt:hover{background:var(--chip-bg)}
+/* Eliminar es un botón de verdad (Oscar lo pidió), pero vive al final del
+   panel y en rojo: visible cuando lo buscas, lejos de los dedos cuando no. */
+.btn.danger{background:transparent;color:var(--late);border:1px solid var(--late)}
+.btn.danger:hover{background:var(--late-bg)}
+/* Cobro: verde cuando ya se cobró, ámbar mientras se debe. */
+.pay{font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px}
+.pay.ok{background:var(--run-bg);color:var(--run)}
+.pay.no{background:var(--pause-bg);color:var(--pause)}
 .rowbar .n{font-style:normal;color:var(--muted);font-size:10.5px;margin-left:6px}
 .tel{color:var(--rail-ink);text-decoration:underline;text-underline-offset:2px}
 #d-phone{margin-top:6px}
@@ -447,8 +493,6 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
   .kpis{grid-template-columns:repeat(2,1fr)}
   .board{grid-template-columns:repeat(5,minmax(190px,1fr))}
   .grid2{grid-template-columns:1fr}
-  .wrap.open{grid-template-columns:1fr}
-  aside{position:fixed;inset:0 0 0 auto;width:min(100vw,420px);z-index:30;box-shadow:-16px 0 44px rgba(0,0,0,.28)}
 }
 @media (max-width:720px){
   .rail{gap:10px}
@@ -468,8 +512,10 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 #station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
   border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 #station-btn.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
+/* Acción de cierre, no alerta: vive discreta en la barra, como sus vecinos. */
 .endday{font:600 11px/1 var(--ui);letter-spacing:.06em;padding:9px 13px;margin-left:8px;border-radius:9px;
-  border:1px solid var(--pause);background:var(--pause-bg);color:var(--pause);cursor:pointer}
+  border:1px solid var(--rail-line);background:var(--rail-2);color:var(--rail-ink);cursor:pointer}
+.endday:hover{border-color:var(--rail-accent)}
 .stationbar{display:flex;align-items:center;gap:14px;padding:9px 20px;background:var(--btn-bg);color:var(--btn-fg)}
 .stationbar .sb-a{font:700 13px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase}
 .stationbar .sb-n{font:600 11px/1 var(--ui);opacity:.85}
@@ -585,6 +631,15 @@ body.station-on .board .col{min-width:0}
   .card .big{font-size:32px}
   .btn.row{min-height:64px;font-size:17px}
   .step{min-height:58px}
+  .leyenda{margin-left:0;width:100%;order:9}
+}
+/* ── iPAD / VENTANA MEDIANA: el pipeline COMPLETO, sin scroll de lado ──
+   Con 5 columnas deslizables, "Listo" quedaba fuera de la pantalla y
+   parecía que no existía. En tablet el tablero se dobla en dos columnas:
+   todo visible, nada escondido. */
+@media (max-width:980px) and (min-width:641px){
+  .board{grid-template-columns:1fr 1fr;overflow-x:visible}
+  .board .col{min-width:0}
 }
 
 /* ── TELÉFONO: resumen primero ── */
@@ -615,6 +670,11 @@ body.station-on .board .col{min-width:0}
   .ov{grid-template-columns:1fr auto;gap:4px}
   .ov-st,.ov-who{font-size:10.5px}
   .step{grid-template-columns:24px 1fr auto;min-height:56px}
+  /* La ficha en el teléfono: el desglose por etapa respira en vez de
+     apretarse en columnas fijas. */
+  .lg{grid-template-columns:1fr auto auto auto;gap:8px;font-size:11.5px}
+  .d-b{padding:14px;gap:16px}
+  .hero .t{font-size:40px}
 }
 /* Nada debe empujar la página de lado. */
 html,body{max-width:100%;overflow-x:hidden}
@@ -650,8 +710,6 @@ header{max-width:100%}
 
   <div class="stationbar" id="stationbar" hidden></div>
 
-  <section class="kpis" id="kpis"></section>
-
   <div class="wrap" id="wrap">
     <main>
       <div class="tabs" role="tablist">
@@ -660,13 +718,16 @@ header{max-width:100%}
       </div>
 
       <section id="panel-ops">
-        <div id="alertband"></div>
+        <!-- El pulso por área: cuántos carros tiene cada una y su promedio.
+             Lo justo para leer el taller de un vistazo, sin robarle a la
+             entrada su limpieza. -->
+        <section class="areas" id="areas"></section>
         <div class="opsbar">
           <button type="button" class="newbtn" id="new-car"><span class="plus">+</span> Entró un vehículo</button>
           <p class="hint" id="ops-hint"></p>
           <div class="leyenda" id="leyenda">
-            <span><i class="lg-run"></i>alguien trabajando</span>
-            <span><i class="lg-free"></i>sin tomar · parado</span>
+            <span><i class="lg-run"></i>trabajando</span>
+            <span><i class="lg-free"></i>sin tomar</span>
             <span><i class="lg-hold"></i>pausado</span>
             <span><i class="lg-late"></i>pasó la entrega</span>
           </div>
@@ -687,6 +748,12 @@ header{max-width:100%}
       </section>
 
       <section id="panel-mgmt" hidden>
+        <!-- Los números del taller viven aquí, no en la entrada: la primera
+             pantalla es para operar (entrar carros, ver el proceso por área);
+             esta es para analizar. Lo pidió Pedro: "que se vea todo más clean
+             cuando tú entres". -->
+        <section class="kpis" id="kpis"></section>
+        <div id="alertband"></div>
         <div class="grid2">
           <div class="box">
             <h2>Tiempo promedio por etapa</h2>
@@ -746,8 +813,8 @@ header{max-width:100%}
 
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
-        <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió · sacar del taller</button>
-        <button type="button" class="moreLink" id="d-remove">Eliminar este vehículo · se metió por error</button>
+        <button type="button" class="btn alt row" id="d-paid" hidden>Marcar cobrado</button>
+        <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió</button>
 
         <div class="sec">
           <div class="lbl">Servicios contratados</div>
@@ -757,22 +824,22 @@ header{max-width:100%}
         </div>
 
         <div class="sec">
-          <div class="lbl">Tiempo por etapa · trabajando y esperando</div>
+          <div class="lbl">Tiempo por etapa</div>
           <div class="ledger" id="d-ledger"></div>
         </div>
 
         <div class="sec">
-          <div class="lbl">Hoja de vida · todo lo que pasó, con su hora</div>
+          <div class="lbl">Hoja de vida</div>
           <div class="vida" id="d-vida"></div>
         </div>
 
         <div class="sec">
-          <div class="lbl">Etapas de este trabajo · toca para mover el carro</div>
+          <div class="lbl">Etapas · toca para mover el carro</div>
           <div class="stepper" id="d-stepper"></div>
         </div>
 
         <div class="sec">
-          <div class="lbl">Subetapa · una o varias</div>
+          <div class="lbl">Subetapas</div>
           <div class="whybox" id="d-whybox" hidden>
             <div class="why-h">Va pasado de tiempo. ¿Por qué?</div>
             <div class="why-quick" id="d-why-quick"></div>
@@ -808,17 +875,19 @@ header{max-width:100%}
               <button type="button" class="btn sm" id="d-tech">Reasignar</button>
             </div>
 
-            <div class="sec">
-              <div class="lbl">Notas del vehículo</div>
-              <div class="notes" id="d-notes"></div>
-              <div class="noteform">
-                <textarea id="d-note" placeholder="Qué pasó en este proceso…"></textarea>
-                <button type="button" class="btn sm" id="d-note-add">Guardar nota</button>
-              </div>
-            </div>
-
           </div>
         </details>
+
+        <div class="sec">
+          <div class="lbl">Notas del técnico</div>
+          <div class="notes" id="d-notes"></div>
+          <div class="noteform">
+            <textarea id="d-note" placeholder="Qué pasó en este proceso…"></textarea>
+            <button type="button" class="btn sm" id="d-note-add">Guardar nota</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn danger row" id="d-remove">Eliminar vehículo del taller</button>
 
       </div>
     </aside>
@@ -848,10 +917,6 @@ header{max-width:100%}
             <input id="m-model" placeholder="Land Cruiser" autocomplete="off"/>
             <span class="err">Falta el modelo</span>
           </div>
-          <div class="f">
-            <label for="m-color">Color</label>
-            <input id="m-color" placeholder="Blanco perlado" autocomplete="off"/>
-          </div>
           <div class="f" id="fw-plate">
             <label for="m-plate">Placa</label>
             <input id="m-plate" placeholder="A123456" autocomplete="off"/>
@@ -862,19 +927,17 @@ header{max-width:100%}
             <input id="m-client" placeholder="Sr. Méndez" autocomplete="off"/>
             <span class="err">Falta el cliente</span>
           </div>
-          <div class="f">
-            <label for="m-tech">Responsable</label>
-            <select id="m-tech"></select>
-          </div>
         </div>
       </div>
 
+      <!-- Oscar: "No voy a poner el teléfono del cliente." El campo vive en
+           "Cambiar servicios" para agregarlo después; en la entrada no estorba. -->
       <div class="f" id="fw-phone">
-        <label for="m-phone">Teléfono del cliente</label>
+        <label for="m-phone">Teléfono del cliente (opcional)</label>
         <input id="m-phone" type="tel" inputmode="tel" placeholder="809 555 0000" autocomplete="off"/>
       </div>
       <div id="m-svcwrap" class="f">
-        <label id="m-svclbl">Qué pidió el cliente · toca todo lo que aplique</label>
+        <label id="m-svclbl">Qué pidió el cliente</label>
         <div id="m-fams"></div>
         <span class="err" id="err-svc">Elige al menos un servicio</span>
       </div>
@@ -886,10 +949,25 @@ header{max-width:100%}
         <div class="tipbox" id="m-tip"></div>
       </div>
 
-      <div class="f" id="m-note-wrap">
-        <label for="m-note">Nota de entrada (opcional)</label>
-        <textarea id="m-note" rows="2" placeholder="Rayón en el bumper, el cliente pidió revisarlo…"></textarea>
-      </div>
+      <details class="more" id="m-extra">
+        <summary>Más detalles · color, responsable, nota de entrada</summary>
+        <div class="inner">
+          <div class="fgrid">
+            <div class="f">
+              <label for="m-color">Color</label>
+              <input id="m-color" placeholder="Blanco perlado" autocomplete="off"/>
+            </div>
+            <div class="f">
+              <label for="m-tech">Responsable</label>
+              <select id="m-tech"></select>
+            </div>
+          </div>
+          <div class="f" id="m-note-wrap">
+            <label for="m-note">Nota de entrada</label>
+            <textarea id="m-note" rows="2" placeholder="Rayón en el bumper, el cliente pidió revisarlo…"></textarea>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="sheet-f">
@@ -940,11 +1018,27 @@ const SHOP = {
     { name: "Listo",              target: null }
   ],
 
+  /* Qué subetapas pertenecen a cada etapa — "una etapa, una subetapa": el
+     técnico ve SOLO los pasos de donde está el carro. PRIMER BORRADOR del
+     mapeo: Oscar lo ajusta con su experiencia (igual que los tiempos). */
+  stageSubs: {
+    "Recepción": [],
+    "Preparación": ["Lavado","Descontaminación de pintura","Desarme","Desmonte de aros",
+      "Cortando la lámina","Ploteo de piezas","Revisión de pintura para instalar PPF","En preparación"],
+    "En proceso": ["Corrección de pintura","Aplicación de Modesta","Curado de Modesta con lámparas IR",
+      "Instalación de PPF","Tiempo de secado al sol","Instalando","En reparación",
+      "En cabina de pintura","Repulido y brillado","Arme","Instalación de accesorios"],
+    "Control de calidad": ["Lavado y detallado","Revisado y listo"],
+    "Listo": []
+  },
+
   /* Los servicios que vende el taller, con sus pasos y lo que debe durar
      cada paso. Esto es lo que Oscar ajusta con su experiencia. */
   services: {
     "Modesta Coatings": {
-      skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T"],
+      /* Los cuatro que Oscar dictó en la reunión 2. "Corin": confirmar con él
+         si es modelo aparte o parte del nombre completo. */
+      skus:["Modesta Corin","Modesta BC-04","Modesta BC-X","Modesta BC-08"],
       slaDays: 2,
       steps:[["Lavado",0.75],["Descontaminación de pintura",1],["Corrección de pintura",3],
              ["Aplicación de Modesta",2.5],["Curado de Modesta con lámparas IR",2],["Revisado y listo",0.5]]
@@ -972,6 +1066,13 @@ const SHOP = {
       slaDays: null,
       steps:[["Desarme",2],["Desmonte de aros",0.5],["En reparación",5],["En preparación",3],
              ["En cabina de pintura",5],["Repulido y brillado",2.5],["Arme",2],["Lavado y detallado",1],["Revisado y listo",0.5]]
+    },
+    /* Oscar lo mandó la mañana del 2026-08-12: alfombras WeatherTech. Familia
+       nueva para que quepan los accesorios que vengan después. */
+    "Accesorios": {
+      skus:["Alfombras WeatherTech 1ra fila","Alfombras WeatherTech 2da fila"],
+      slaHours: 2,
+      steps:[["Instalación de accesorios",0.5],["Revisado y listo",0.25]]
     }
   },
   comboDays: 6,
@@ -1202,6 +1303,15 @@ function short(ms){
   const h = Math.floor(ms/H), m = Math.floor(ms%H/60000);
   return h ? `${h}h ${String(m).padStart(2,"0")}m` : `${m}m`;
 }
+/* Duración con segundos: "1m 23s". Oscar cierra un lavado de minuto y pico y
+   quiere VER ese minuto y pico — con short() un cierre corto salía "0m". */
+function dur(ms){
+  ms = Math.max(0, ms|0);
+  const h = Math.floor(ms/H), m = Math.floor(ms%H/60000), s = Math.floor(ms%60000/1000);
+  if (h) return `${h}h ${String(m).padStart(2,"0")}m`;
+  if (m) return `${m}m ${String(s).padStart(2,"0")}s`;
+  return `${s}s`;
+}
 function shortSku(s){
   return s.replace(/^Modesta /,"M ").replace(/^Pintura /,"P ").replace(/^Lámina /,"L ");
 }
@@ -1228,14 +1338,16 @@ function newCar(o){
     readyAt:null,            // cuándo quedó LISTO (empieza a contar la espera del cliente)
     delivered:null,          // cuándo se lo llevó el cliente. Con esto sale de operaciones.
     deliveredBy:null,
+    paid:null,               // cuándo se cobró. "Listo" espera; cobrado cierra el ciclo.
     changes:[],              // cambios de servicio pedidos a mitad de trabajo
     /* Por qué se pasó de tiempo, POR ETAPA. Va pegado al retraso y no suelto en
        las notas: si el motivo no viaja con el número, Oscar ve "+137%" en un
        sitio y la explicación en otro, y sigue sin saber a quién llamar. */
     delayWhy:{},
     activeSubs:new Set(),    // subetapas activas ahora
-    subMs:{},                // ms acumulado por subetapa (cerrado)
+    subMs:{},                // ms del TURNO ACTUAL por subetapa (se resetea al activar)
     subFrom:{},              // desde cuándo corre cada subetapa activa
+    subRuns:[],              // turnos CERRADOS: {name, ms, at, who} — el registro que Oscar ve
     notes:o.notes ? o.notes.slice() : []
   };
   STAGES.forEach(s => { c.stageMs[s] = 0; c.waitMs[s] = 0; c.pauseMs[s] = 0; });
@@ -1443,18 +1555,80 @@ function moveTo(c, stage){
   if (stage === STAGES[STAGES.length-1]) { c.everStarted = true; c.readyAt = c.readyAt || Date.now(); }
   else { c.readyAt = null; }
 }
+/* El paso que sigue, en el orden de los servicios del carro y dentro de la
+   etapa actual. Oscar: "se registra su duración y arranca automáticamente el
+   cronómetro de la siguiente". */
+function nextSubAfter(c, name){
+  const stageList = (SHOP.stageSubs || {})[c.stage];
+  const inStage = s => !Array.isArray(stageList) || stageList.includes(s);
+  const orden = [];
+  famsOf(c.skus).forEach(f => (SHOP.services[f]?.steps || []).forEach(([s]) => {
+    if (!orden.includes(s)) orden.push(s);
+  }));
+  const list = orden.filter(inStage);
+  const i = list.indexOf(name);
+  if (i < 0) return null;
+  for (let j = i + 1; j < list.length; j++) {
+    if (!c.activeSubs.has(list[j])) return list[j];
+  }
+  return null;
+}
 function toggleSub(c, name){
   bank(c);
   if (!c.subFrom) c.subFrom = {};
+  if (!c.subRuns) c.subRuns = [];
   if (c.activeSubs.has(name)) {
-    bankSub(c, name);              // cierra: queda visible cuánto duró
+    bankSub(c, name);              // cierra el turno…
+    // …y lo GUARDA: "cuando yo quite el lavado, ahí estoy viendo que duró
+    // un minuto". Cada activación es su propio registro, con quién y cuándo.
+    const cerrado = c.subMs[name] || 0;
+    c.subRuns.push({ name, ms: cerrado, at: Date.now(),
+                     who: c.claimedBy || c.tech });
+    delete c.subMs[name];
     c.activeSubs.delete(name);
     c.subFrom[name] = null;
+    /* Cerraste un paso y no queda otro corriendo: el siguiente arranca solo,
+       en 0. Si no tocaba, un toque lo quita. */
+    if (c.running && c.activeSubs.size === 0) {
+      const nx = nextSubAfter(c, name);
+      if (nx) {
+        c.activeSubs.add(nx);
+        c.subMs[nx] = 0;
+        c.subFrom[nx] = Date.now();
+        toast(`<b>${esc(name)}</b> quedó en ${dur(cerrado)} · arrancó <b>${esc(nx)}</b> en 0`);
+      }
+    }
   } else {
     c.activeSubs.add(name);
-    if (!c.subMs[name]) c.subMs[name] = 0;
-    c.subFrom[name] = c.running ? Date.now() : null;   // arranca en 0
+    c.subMs[name] = 0;             // SIEMPRE arranca en 0 — reset por activación
+    c.subFrom[name] = c.running ? Date.now() : null;
   }
+}
+/* Total histórico de una subetapa: todos los turnos cerrados + el turno en
+   curso. Gerencia y los botones muestran ESTO; el chip vivo muestra el turno. */
+function subTotalMs(c, name){
+  const closed = (c.subRuns || []).reduce((a,r) => a + (r.name === name ? (r.ms||0) : 0), 0);
+  return closed + (c.activeSubs.has(name) ? subMs(c, name) : 0);
+}
+/* Carros sembrados o restaurados con el modelo viejo: subMs traía TOTALES
+   cerrados. Se convierten una vez a turnos (sin hora — histórico). Una sub
+   ACTIVA con total viejo y sin subFrom quedaría con un reloj congelado que
+   nunca corre ni se resetea: su historia se cierra y el turno vivo arranca
+   en 0, que es la regla de Oscar. */
+function migrateSubs(c){
+  if (!c.subRuns) c.subRuns = [];
+  if (!c.subFrom) c.subFrom = {};
+  Object.keys(c.subMs || {}).forEach(n => {
+    if ((c.subMs[n] || 0) <= 0) return;
+    if (!c.activeSubs.has(n)) {
+      c.subRuns.push({ name:n, ms:c.subMs[n], at:null, who:c.tech || null });
+      delete c.subMs[n];
+    } else if (!c.subFrom[n]) {
+      c.subRuns.push({ name:n, ms:c.subMs[n], at:null, who:c.tech || null });
+      c.subMs[n] = 0;
+      c.subFrom[n] = c.running ? Date.now() : null;
+    }
+  });
 }
 function stateOf(c){
   if (c.stage === "Listo") return "done";
@@ -1585,6 +1759,10 @@ let cars = [
      que lleva 20 min en el taller no puede mostrar 35 min esperando. Ese es
      justo el número que a Oscar le haría perder la confianza. */
   cars.forEach(c => { if (!c.claimedBy) c.waitFrom = Math.max(now - 35*60000, +c.arrived); });
+
+  /* Los sembrados traen subMs con TOTALES del modelo viejo: se convierten a
+     turnos cerrados para que el registro de subetapas los muestre. */
+  cars.forEach(migrateSubs);
 })();
 
 let selected = null;
@@ -1731,6 +1909,26 @@ function renderKpis(){
   ).join("");
 }
 
+/* El pulso por área: carros ahora + tiempo promedio de trabajo en esa etapa.
+   El promedio sale del mismo cálculo que usa Gerencia — una sola verdad. */
+function renderAreas(){
+  const host = $("areas");
+  if (!host) return;
+  const L = live();
+  host.innerHTML = STAGES.map(s => {
+    const here = L.filter(c => c.stage === s);
+    const free = here.filter(c => stateOf(c) === "free").length;
+    const withTime = cars.filter(c => (c.stageMs[s]||0) > 0 || (c.stage===s && stageMs(c)>0));
+    const total = cars.reduce((a,c) => a + (c.stage===s ? stageMs(c) : (c.stageMs[s]||0)), 0);
+    const avg = withTime.length ? Math.round(total / withTime.length) : 0;
+    return `<div class="area ${free ? "has-free" : ""}">
+      <div class="a-k">${esc(s)}</div>
+      <div class="a-n">${here.length}<em>${here.length === 1 ? "carro" : "carros"}${free ? ` · ${free} sin tomar` : ""}</em></div>
+      <div class="a-s">${avg ? `promedio ${short(avg)}` : "sin datos todavía"}</div>
+    </div>`;
+  }).join("");
+}
+
 /* ---------- render: board ---------- */
 function cardHtml(c){
   const st = stateOf(c);
@@ -1745,7 +1943,7 @@ function cardHtml(c){
   const done = st === "done";
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
     <div class="name">${esc(c.brand)} ${esc(c.model)}</div>
-    <div class="sub">${esc(c.color)} · ${esc(c.plate)}</div>
+    <div class="sub">${esc(c.color)} <span class="plate">${esc(c.plate)}</span></div>
     <div class="big">${relojVivo(c).txt}</div>
     <div class="cap">${esc(relojVivo(c).cap)}</div>
     ${(() => {
@@ -1759,16 +1957,16 @@ function cardHtml(c){
         : `en tiempo · debía durar ${short(tg)}`}</div>`;
     })()}
     ${c.changes.length ? `<div class="chips"><span class="chg">Servicio cambiado</span></div>` : ""}
-    <div class="chips">
+    ${subs.length || st === "run" ? `<div class="chips">
       ${subs.length ? subs.slice(0,2).map(s=>`<span class="tag sub">${esc(s)}</span>`).join("")
                     : `<span class="tag sub">Sin subetapa</span>`}
       ${subs.length>2?`<span class="tag sub">+${subs.length-2}</span>`:""}
-    </div>
+    </div>` : ""}
     <div class="foot">
-      <span class="pill ${st==="run"?"run":st==="pause"?"pause":st==="done"?"":""}">
+      <span class="pill ${st==="run"?"run":st==="pause"?"pause":st==="free"?"free":""}">
         <span class="dot"></span>${esc(stateLabel(c))}
       </span>
-      <span class="who">${c.claimedBy ? esc(c.claimedBy) : "sin tomar"}</span>
+      <span class="who">${c.claimedBy ? esc(c.claimedBy) : ""}</span>
     </div>
   </div>`;
 }
@@ -1796,7 +1994,7 @@ function renderDone(){
   }
   $("done").innerHTML = `<table><thead><tr>
       <th>Vehículo</th><th>Cliente</th><th>Servicios</th>
-      <th>Trabajo</th><th>Esperando</th><th>Total en taller</th><th>Entregado</th>
+      <th>Trabajo</th><th>Esperando</th><th>Total en taller</th><th>Cobro</th><th>Entregado</th>
     </tr></thead><tbody>${rows.map(c => {
       const w = carWork(c), d = carWait(c);
       const total = inShopMs(c);
@@ -1807,6 +2005,7 @@ function renderDone(){
         <td>${short(w)}</td>
         <td>${short(d)}</td>
         <td>${short(total)}</td>
+        <td>${c.paid ? `<span class="pay ok">Cobrado</span>` : `<span class="pay no">Pendiente</span>`}</td>
         <td>${new Date(c.delivered).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}<div class="mut">${esc(c.deliveredBy||"")}</div></td>
       </tr>`; }).join("")}</tbody></table>`;
   $("done").querySelectorAll("tr[data-id]").forEach(tr => tr.addEventListener("click", () => open(tr.dataset.id)));
@@ -1858,7 +2057,7 @@ function renderMgmt(){
   bars($("avg-stages"), stageTotals, short);
 
   const subTotals = {};
-  cars.forEach(c => ALL_SUBS.forEach(s => { const v = subMs(c,s); if (v) subTotals[s] = (subTotals[s]||0) + v; }));
+  cars.forEach(c => ALL_SUBS.forEach(s => { const v = subTotalMs(c,s); if (v) subTotals[s] = (subTotals[s]||0) + v; }));
   bars($("avg-subs"), Object.entries(subTotals).sort((a,b)=>b[1]-a[1]).slice(0,7), short);
 
   const mix = {};
@@ -1945,43 +2144,53 @@ function subsOf(c){
   return mine;
 }
 
-function renderSubs(c){
+/* El reloj VIVO de las subetapas activas — lo pinta renderSubs y lo REPINTA
+   tick() cada segundo: Oscar quiere ver el cronómetro corriendo. */
+function renderNowSubs(c){
   const active = [...c.activeSubs];
-  $("d-nowsubs").innerHTML = active.length
-    ? active.map(s => {
-        const ms = subMs(c, s);
-        // Corriendo se ve al segundo; Oscar quiere VER el reloj de la subetapa.
-        return `<span class="nsub run">${esc(s)}<span class="tm">${hms(ms)}</span></span>`;
-      }).join("")
+  const box = $("d-nowsubs");
+  if (!box) return;
+  box.innerHTML = active.length
+    ? active.map(s => `<span class="nsub run">${esc(s)}<span class="tm">${hms(subMs(c, s))}</span></span>`).join("")
     : `<span class="nosub">Ninguna elegida todavía.</span>`;
+}
 
-  /* Lo que ya se cerró: "cuando yo quite el lavado, ahí yo estoy viendo que
-     duró un minuto". Sin esto el tiempo se guarda y no se ve. */
-  const cerradas = Object.keys(c.subMs || {})
-    .filter(n => (c.subMs[n] || 0) > 0 && !c.activeSubs.has(n));
+function renderSubs(c){
+  renderNowSubs(c);
+
+  /* Turnos cerrados, el más reciente primero: "cuando yo quite el lavado,
+     ahí estoy viendo que duró un minuto" — con segundos, no "0m". */
+  const runs = (c.subRuns || []).slice(-8).reverse();
   const done = $("d-subs-done");
-  if (done) done.innerHTML = cerradas.length
-    ? cerradas.map(n => `<span class="nsub off">${esc(n)}<span class="tm">${short(c.subMs[n])}</span></span>`).join("")
+  if (done) done.innerHTML = runs.length
+    ? runs.map(r => `<span class="nsub off">${esc(r.name)}<span class="tm">${dur(r.ms)}</span></span>`).join("")
     : "";
 
+  const active = [...c.activeSubs];
   $("d-subs-open").textContent = subsOpen ? "Listo" : (active.length ? "Cambiar subetapas" : "Elegir subetapas");
   $("d-subs-box").hidden = !subsOpen;
   if (!subsOpen) return;
 
+  /* "Una etapa, una subetapa": por defecto sólo los pasos de SUS servicios
+     que tocan en la etapa actual. "Ver todas" sigue siendo la salida. */
   const mine = subsOf(c);
-  const list = showAllSubs ? ALL_SUBS : ALL_SUBS.filter(s => mine.has(s) || c.activeSubs.has(s));
-  $("d-subs").innerHTML = list.map(s => {
-    const ms = subMs(c, s);
+  const stageList = (SHOP.stageSubs || {})[c.stage];
+  const inStage = s => !Array.isArray(stageList) || stageList.includes(s);
+  const list = showAllSubs
+    ? ALL_SUBS
+    : ALL_SUBS.filter(s => (mine.has(s) && inStage(s)) || c.activeSubs.has(s));
+  $("d-subs").innerHTML = (list.length ? list.map(s => {
+    const tot = subTotalMs(c, s);
     return `<button type="button" class="sbtn ${c.activeSubs.has(s)?"on":""} ${mine.has(s)?"mine":""}" data-sub="${esc(s)}">
-      ${esc(s)}${ms?`<span class="tm">${short(ms)}</span>`:""}
+      ${esc(s)}${tot?`<span class="tm">${short(tot)}</span>`:""}
     </button>`;
-  }).join("");
+  }).join("") : `<span class="nosub">Esta etapa no tiene subetapas de sus servicios — usa "Ver todas" si hace falta.</span>`);
   $("d-subs").querySelectorAll(".sbtn").forEach(b => b.addEventListener("click", () => {
     toggleSub(c, b.dataset.sub); open(c.id); paint();
   }));
   const hidden = ALL_SUBS.length - list.length;
   $("d-subs-more").textContent = showAllSubs
-    ? "Mostrar solo las de sus servicios"
+    ? "Mostrar solo las de esta etapa"
     : (hidden > 0 ? `Ver todas las subetapas del taller (${hidden} más)` : "");
   $("d-subs-more").hidden = !showAllSubs && hidden === 0;
 }
@@ -2000,7 +2209,7 @@ function open(id){
      marca. Sin teléfono, lo dice — nunca un número inventado. */
   $("d-phone").innerHTML = c.phone
     ? `<a class="tel" href="tel:${esc(String(c.phone).replace(/[^0-9+]/g,""))}">Llamar a ${esc(c.client)} · ${esc(c.phone)}</a>`
-    : `<button type="button" class="moreLink" id="d-phone-add">Falta el teléfono · agrégalo para poder llamar</button>`;
+    : `<button type="button" class="moreLink" id="d-phone-add">Agregar teléfono</button>`;
   const addTel = $("d-phone-add");
   if (addTel) addTel.addEventListener("click", () => openModal("svc", c));
 
@@ -2051,6 +2260,20 @@ function open(id){
     if (!dv.hidden) dv.textContent = c.readyAt
       ? `El cliente lo recogió · listo hace ${short(readyMs(c))}`
       : "El cliente lo recogió · sacar del taller";
+  }
+  /* Eliminar existe para todos (Oscar: "hay vehículos que los terminan y los
+     quieren quitar"). Un ENTREGADO es historia del taller, así que borrar uno
+     pide confirmación; el resto se borra con Deshacer a mano. */
+  const rm = $("d-remove");
+  if (rm) rm.textContent = c.delivered ? "Eliminar del historial" : "Eliminar vehículo";
+  /* El cobro: "Listo" es esperando; cobrado es cerrado. El botón dice el
+     estado y lo cambia con un toque, también después de entregado. */
+  const pd = $("d-paid");
+  if (pd) {
+    pd.hidden = !(c.stage === "Listo" || c.delivered);
+    if (!pd.hidden) pd.textContent = c.paid
+      ? `Cobrado ✓ · ${fecha(c.paid)} · toca para deshacerlo`
+      : "Marcar cobrado";
   }
 
   const vida = $("d-vida");
@@ -2123,7 +2346,7 @@ function open(id){
          <span class="lg-d">${short(tCasa)}</span><span class="lg-t"></span></div>`
       + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} sin registrar en ningún cronómetro</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
   }
-  $("d-more-s").textContent = `Ficha del vehículo · servicios, entrega y ${c.notes.length} nota(s)`;
+  $("d-more-s").textContent = `Entrega acordada y responsable`;
   $("d-due").classList.toggle("bad", dp.late);
   $("d-due-v").textContent = dueText(c);
   $("d-due-s").textContent = c.due.toLocaleString("es-DO",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -2147,6 +2370,7 @@ function paint(){
   renderKpis();
   renderAlerts();
   if (tab === "ops") {
+    renderAreas();
     $("board").hidden = view !== "board";
     $("list").hidden  = view !== "list";
     $("done").hidden  = view !== "done";
@@ -2155,8 +2379,8 @@ function paint(){
     else renderList();
     const freeN = live().filter(c => stateOf(c)==="free").length;
     $("ops-hint").textContent = freeN
-      ? `${freeN} ${freeN === 1 ? "vehículo lleva" : "vehículos llevan"} rato sin que nadie los tome. Ese tiempo cuenta contra la entrega.`
-      : `Cada etapa cuenta su tiempo desde 0. Al terminar, el carro queda libre para la siguiente área.`;
+      ? `${freeN} ${freeN === 1 ? "vehículo" : "vehículos"} sin tomar — ese tiempo corre contra la entrega.`
+      : "";
   } else {
     renderMgmt();
   }
@@ -2182,6 +2406,7 @@ function tick(){
   if (selected) {
     const c = cars.find(x => x.id === selected);
     if (c) {
+      renderNowSubs(c);   // el cronómetro de la subetapa corre a la vista
       $("d-hero-t").textContent = relojVivo(c).txt;
       $("d-hero-of").textContent = c.delivered
         ? `En el taller ${short(inShopMs(c))} · entró ${fecha(c.arrived)} · lo recogieron ${fecha(c.delivered)}`
@@ -2286,6 +2511,9 @@ $("d-why-save").addEventListener("click", () => {
 
 $("d-remove").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
+  /* Un entregado es trabajo hecho: borrarlo borra historia. Se pregunta. */
+  if (c.delivered && !confirm(
+    `${c.brand} ${c.model} ya está entregado.\n\nEliminarlo lo saca del historial y deja de contar en las estadísticas. ¿Seguro?`)) return;
   const i = cars.indexOf(c);
   cars.splice(i, 1);
   toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> eliminado · no cuenta en ninguna estadística`,
@@ -2293,10 +2521,27 @@ $("d-remove").addEventListener("click", () => {
   close(); paint();
 });
 
+/* Cobrar y entregar son dos hechos distintos: el carro puede salir sin
+   cobrarse (se marca como deuda) o cobrarse antes de que lo recojan. */
+$("d-paid").addEventListener("click", () => {
+  const c = cars.find(x => x.id === selected); if (!c) return;
+  if (c.paid) {
+    c.paid = null;
+    toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> vuelve a Pendiente de cobro`);
+  } else {
+    c.paid = Date.now();
+    c.notes.push({ at:Date.now(), who:station.tech || c.claimedBy || c.tech, text:"Cobrado." });
+    toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> cobrado ✓`);
+  }
+  open(c.id); paint();
+});
+
 $("d-deliver").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c || c.stage !== "Listo") return;
   deliver(c, station.tech || c.claimedBy || c.tech);
-  toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> entregado · salió del tablero, está en Entregados`,
+  toast(c.paid
+    ? `<b>${esc(c.brand)} ${esc(c.model)}</b> entregado y cobrado · está en Entregados`
+    : `<b>${esc(c.brand)} ${esc(c.model)}</b> entregado <b>sin cobrar</b> · quedó Pendiente en Entregados`,
         { label:"Deshacer", fn: () => { undeliver(c); toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> volvió al tablero`); } });
   close(); paint();
 });
@@ -2386,13 +2631,17 @@ function openModal(mode, car){
   ["fw-brand","fw-model","fw-plate","fw-client","fw-due","m-svcwrap"].forEach(id => $(id).classList.remove("bad"));
   const isNew = mode === "new";
   $("m-veh").hidden = !isNew;
-  $("m-note-wrap").hidden = !isNew;
+  $("m-extra").hidden = !isNew;
+  $("m-extra").open = false;
+  /* En la entrada el teléfono no se pide (Oscar no lo va a llenar); se agrega
+     después desde "Cambiar servicios" si hace falta llamar. */
+  $("fw-phone").hidden = isNew;
   $("m-title").textContent = isNew ? "Entró un vehículo" : "Cambiar servicios";
   $("m-save").textContent = isNew ? "Guardar y poner en Recepción" : "Guardar cambios";
 
   if (isNew) {
-    $("m-sub").textContent = "El cronómetro queda en 0:00:00 hasta que alguien pulse Iniciar.";
-    $("m-svclbl").textContent = "Qué pidió el cliente · toca todo lo que aplique";
+    $("m-sub").textContent = "El cronómetro queda en 0 hasta que alguien pulse Iniciar.";
+    $("m-svclbl").textContent = "Qué pidió el cliente";
     ["m-brand","m-model","m-color","m-plate","m-client","m-phone","m-note","m-due"].forEach(id => $(id).value = "");
     $("m-tech").innerHTML = TECHS.map(t => `<option>${esc(t)}</option>`).join("");
     mSkus = new Set(); dueTouched = false;
@@ -2537,6 +2786,7 @@ function restaurar(){
         due:new Date(o.due),
         activeSubs:new Set(o.activeSubs || []),
       });
+      migrateSubs(c);   // partidas guardadas con el modelo viejo de subMs
       return c;
     });
     return true;
