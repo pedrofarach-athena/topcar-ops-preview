@@ -585,7 +585,20 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 
 /* ── v10: tomar / esperar / terminar, y tablets por área ── */
 .card.is-free .big{color:var(--pause)}
-.station{margin-left:8px}
+.station{margin-left:8px;position:relative}
+/* El panel de área cuelga del botón, en la casa y no en un diálogo del
+   navegador. Se cierra tocando fuera. */
+.station-panel{
+  position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:min(320px,86vw);
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px;display:grid;gap:8px;box-shadow:0 18px 44px rgba(0,0,0,.32)
+}
+.station-panel[hidden]{display:none}
+.station-panel .sp-k{
+  font-family:var(--disp);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted)
+}
+.station-panel .subs{display:flex;flex-wrap:wrap;gap:6px}
 #station-btn{font:600 11px/1 var(--ui);letter-spacing:.08em;padding:9px 13px;border-radius:9px;
   border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 #station-btn.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
@@ -798,6 +811,7 @@ header{max-width:100%}
       title="Modo TV — rota solo entre el tablero y gerencia, para la pantalla del taller">TV</button>
     <div class="station" id="station-box">
       <button type="button" id="station-btn" title="Esta tablet pertenece a un área">TODAS LAS ÁREAS</button>
+      <div class="station-panel" id="station-panel" hidden></div>
     </div>
     <button type="button" class="endday" id="end-day" title="Pausa todos los cronómetros del taller">Se acabó el día</button>
     <div class="clockNow" id="now">—</div>
@@ -817,6 +831,10 @@ header{max-width:100%}
              Lo justo para leer el taller de un vistazo, sin robarle a la
              entrada su limpieza. -->
         <section class="areas" id="areas"></section>
+        <!-- Lo que se está rompiendo AHORA. Va en la primera pantalla: si hay
+             que ir a buscarlo a Gerencia, se lee mañana en vez de arreglarse
+             hoy. Cuando no hay nada, no ocupa sitio. -->
+        <div id="alertband"></div>
         <div class="opsbar">
           <button type="button" class="newbtn" id="new-car"><span class="plus">+</span> Entró un vehículo</button>
           <p class="hint" id="ops-hint"></p>
@@ -848,7 +866,6 @@ header{max-width:100%}
              esta es para analizar. Lo pidió Pedro: "que se vea todo más clean
              cuando tú entres". -->
         <section class="kpis" id="kpis"></section>
-        <div id="alertband"></div>
         <div class="grid2">
           <div class="box">
             <h2>Tiempo promedio por etapa</h2>
@@ -967,6 +984,7 @@ header{max-width:100%}
               <div class="lbl">Responsable</div>
               <div class="miniline"><span class="k" id="d-tech-v">—</span></div>
               <button type="button" class="btn sm" id="d-tech">Reasignar</button>
+              <div class="pickbox" id="d-tech-box" hidden></div>
             </div>
 
           </div>
@@ -1117,7 +1135,11 @@ const SHOP = {
     "En proceso": ["Corrección de pintura","Aplicación de Modesta","Curado de Modesta con lámparas IR",
       "Instalación de PPF","Tiempo de secado al sol","Instalando","En reparación",
       "En cabina de pintura","Repulido y brillado","Arme","Instalación de accesorios",
-      "Remoción de manchas de cristales"],
+      "Remoción de manchas de cristales",
+      /* En pintura y NGENCO este paso va entre "En reparación" y la cabina, o
+         sea dentro de En proceso. Sin esto el arranque automático se lo
+         saltaba. Sigue disponible en Preparación para el que lo use allá. */
+      "En preparación"],
     "Control de calidad": ["Lavado y detallado","Revisado y listo"],
     "Listo": []
   },
@@ -1379,6 +1401,17 @@ function byTech(){
     r.n++; r.work += l.work;
     if (tgt) { r.target += tgt; if (l.work > tgt) r.over++; }
   }));
+  /* La etapa que se está trabajando AHORA también cuenta: si no, el técnico
+     con el peor retraso de la pantalla podía no salir en el panel. */
+  live().forEach(c => {
+    if (c.stage === "Listo" || !c.claimedBy) return;
+    const w = stageMs(c);
+    if (!w) return;
+    const tgt = STAGE_TARGET[c.stage];
+    const r = m[c.claimedBy] || (m[c.claimedBy] = { n:0, work:0, target:0, over:0 });
+    r.n++; r.work += w;
+    if (tgt) { r.target += tgt; if (w > tgt) r.over++; }
+  });
   return Object.entries(m).map(([tech, r]) => ({
     tech, n:r.n, work:r.work, over:r.over,
     pct: r.target ? Math.round((r.work/r.target - 1) * 100) : null
@@ -1626,9 +1659,16 @@ function pause(c, overnight){
 function finishStage(c){
   bankAllSubs(c); bank(c); bankWait(c); bankPause(c);
   const i = STAGES.indexOf(c.stage);
+  /* Sólo lo que AÚN NO se ha registrado de esta etapa. Si el carro ya pasó
+     por aquí antes, stageMs trae el acumulado de las dos veces y registrarlo
+     entero contaba el primer paso dos veces en Gerencia y en la hoja de vida. */
+  const yaW = c.stageLog.filter(l => l.stage === c.stage).reduce((a,l) => a + l.work, 0);
+  const yaE = c.stageLog.filter(l => l.stage === c.stage).reduce((a,l) => a + l.wait, 0);
   c.stageLog.push({
     stage: c.stage, tech: c.claimedBy || c.tech,
-    work: c.stageMs[c.stage]||0, wait: c.waitMs[c.stage]||0, at: Date.now()
+    work: Math.max(0, (c.stageMs[c.stage]||0) - yaW),
+    wait: Math.max(0, (c.waitMs[c.stage]||0) - yaE),
+    at: Date.now()
   });
   c.running = false; c.runFrom = null; c.overnight = false;
   c.activeSubs.clear();
@@ -1680,6 +1720,20 @@ function nextSubAfter(c, name){
   }
   return null;
 }
+/* Foto del carro antes de una acción grande, para poder deshacerla entera.
+   Oscar: "me gusta mucho el botón de deshacer". */
+function fotoCarro(c){
+  return JSON.parse(JSON.stringify({
+    ...c, activeSubs:[...c.activeSubs], arrived:+c.arrived, due:+c.due }));
+}
+function reponerCarro(foto){
+  const c = cars.find(x => x.id === foto.id);
+  if (!c) return;
+  Object.assign(c, foto, {
+    arrived:new Date(foto.arrived), due:new Date(foto.due),
+    activeSubs:new Set(foto.activeSubs) });
+}
+
 function toggleSub(c, name){
   bank(c);
   if (!c.subFrom) c.subFrom = {};
@@ -1822,6 +1876,36 @@ let cars = [
     tech:"Luis M.", skus:["PPF P/P"], due:new Date(now + 30*H), arrived:new Date(now - 5*60000), stage:"Recepción" })
 ];
 
+/* Una etapa no se cierra a la una de la madrugada: el taller estaba cerrado.
+   Estas dos ayudas colocan las horas de los datos de ejemplo dentro del
+   horario real del taller, saltando las noches. */
+function alAbrir(t){
+  const d = new Date(t);
+  const abre = SHOP.hours.openH*60 + SHOP.hours.openM;
+  const cierra = SHOP.hours.closeH*60 + SHOP.hours.closeM;
+  const min = d.getHours()*60 + d.getMinutes();
+  if (min < abre) d.setHours(SHOP.hours.openH, SHOP.hours.openM, 0, 0);
+  else if (min >= cierra) {
+    d.setDate(d.getDate() + 1);
+    d.setHours(SHOP.hours.openH, SHOP.hours.openM, 0, 0);
+  }
+  return +d;
+}
+/* Avanza `ms` de reloj de taller desde `t`, saltando de una noche a la
+   mañana siguiente. */
+function avanzarLaboral(t, ms){
+  let d = new Date(alAbrir(t));
+  let queda = Math.max(0, ms);
+  while (queda > 0) {
+    const cierre = new Date(d);
+    cierre.setHours(SHOP.hours.closeH, SHOP.hours.closeM, 0, 0);
+    const hoy = cierre - d;
+    if (queda <= hoy) { d = new Date(+d + queda); queda = 0; }
+    else { queda -= hoy; d.setDate(d.getDate() + 1); d = new Date(alAbrir(+d)); }
+  }
+  return +d;
+}
+
 // Historial de trabajo realista para que Gerencia tenga datos (no toca las que entran en 0).
 (function seed(){
   const h = (n) => n*H;
@@ -1902,6 +1986,18 @@ let cars = [
     });
   });
 
+  /* Las horas de la hoja de vida, dentro del horario del taller. Sin esto los
+     datos de ejemplo mostraban etapas cerradas a las 10 de la noche y a la
+     una de la madrugada, con un taller que cierra 5:30 — el primer número que
+     le haría dudar a Oscar de todo lo demás. */
+  cars.forEach(c => {
+    let t = alAbrir(+c.arrived);
+    c.stageLog.forEach(l => {
+      t = Math.min(avanzarLaboral(t, (l.work || 0) + (l.wait || 0)), now - 60000);
+      l.at = t;
+    });
+  });
+
   /* La espera nunca puede empezar antes de que el carro entrara: un carro
      que lleva 20 min en el taller no puede mostrar 35 min esperando. Ese es
      justo el número que a Oscar le haría perder la confianza. */
@@ -1975,8 +2071,12 @@ function renderStationBar(){
 }
 
 /* Fin del día: congela todo. Nada corre de noche. */
+/* Qué día se cerró el taller. Sin esto, recargar la pantalla la misma tarde
+   volvía a arrancar todos los cronómetros que "Se acabó el día" había parado. */
+let diaCerrado = null;
 function endDay(){
   let n = 0;
+  diaCerrado = new Date().toDateString();
   live().forEach(c => { if (c.running) { pause(c, true); n++; }
                       if (isWaiting(c)) { bankWait(c); c.waitFrom = null; } });
   return n;
@@ -1994,6 +2094,14 @@ function autoResume(){
   const min = now.getHours()*60 + now.getMinutes();
   const abre = SHOP_OPEN_H*60 + SHOP_OPEN_M;
   const cierra = SHOP.hours.closeH*60 + SHOP.hours.closeM;
+  /* El taller cierra solo. Si nadie pulsó "Se acabó el día", a la hora de
+     cerrar se paran los cronómetros igual: la noche no es trabajo de nadie. */
+  if (min >= cierra && diaCerrado !== key) {
+    const n = endDay();
+    if (n) { paint(); toast(`El taller cerró · <b>${n}</b> cronómetro(s) pausados`); }
+    return;
+  }
+  if (diaCerrado === key) return;   // el día ya se cerró: no se reanuda hoy
   if (min >= abre && min < cierra) {
     lastResumeDay = key;
     let n = 0;
@@ -2303,8 +2411,12 @@ function renderStage(c){
   $("d-stepper").querySelectorAll(".step").forEach(b => b.addEventListener("click", () => {
     const to = b.dataset.stage;
     const cc = cars.find(x => x.id === selected); if (!cc || to === cc.stage) return;
+    const desde = cc.stage, foto = fotoCarro(cc);
     moveTo(cc, to);
     cc.notes.push({ at:Date.now(), who:cc.tech, stage:to, text:`Movido a ${to} a mano.` });
+    toast(`<b>${esc(cc.brand)} ${esc(cc.model)}</b> movido a <b>${esc(to)}</b>`,
+      { label:"Deshacer", fn: () => { reponerCarro(foto);
+        toast(`<b>${esc(cc.brand)} ${esc(cc.model)}</b> volvió a ${esc(desde)}`); open(cc.id); } });
     open(cc.id); paint();
   }));
 }
@@ -2673,18 +2785,37 @@ document.addEventListener("pointerdown", e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape" && tvOn) tvStop(); });
 
 /* Elegir el área de esta tablet (y quién la usa). */
-$("station-btn").addEventListener("click", () => {
+/* Un panel del taller, no un diálogo del navegador con el dominio de GitHub
+   en el título: en la tablet del piso eso se ve prestado. */
+$("station-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  const box = $("station-box");
+  const panel = $("station-panel");
+  panel.hidden = !panel.hidden;
+  if (panel.hidden) return;
   const areas = STAGES.filter(s => s !== "Listo");
-  const opts = areas.map((a,i) => `${i+1}. ${a}`).join("\n");
-  const pick = prompt(`¿A qué área pertenece esta tablet?\n\n${opts}\n0. Todas las áreas (gerencia)`, station.area ? String(areas.indexOf(station.area)+1) : "0");
-  if (pick === null) return;
-  const n = parseInt(pick, 10);
-  if (n === 0) { setStation(null, null); return; }
-  const area = areas[n-1];
-  if (!area) return;
-  const who = prompt(`¿Quién trabaja en ${area}?\n\n${TECHS.map((x,i)=>`${i+1}. ${x}`).join("\n")}`, "1");
-  const tech = TECHS[parseInt(who,10)-1] || null;
-  setStation(area, tech);
+  panel.innerHTML =
+    `<div class="sp-k">¿A qué área pertenece esta tablet?</div>
+     <div class="subs">
+       <button type="button" class="sbtn ${!station.area ? "on" : ""}" data-a="">Todas las áreas</button>` +
+    areas.map(a => `<button type="button" class="sbtn ${station.area === a ? "on" : ""}" data-a="${esc(a)}">${esc(a)}</button>`).join("") +
+    `</div>
+     <div class="sp-k">¿Quién la usa?</div>
+     <div class="subs">
+       <button type="button" class="sbtn ${!station.tech ? "on" : ""}" data-t="">Sin nombre</button>` +
+    TECHS.map(t => `<button type="button" class="sbtn ${station.tech === t ? "on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("") +
+    `</div>`;
+  panel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+    setStation(b.dataset.a || null, station.tech); $("station-btn").click(); $("station-btn").click();
+  }));
+  panel.querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => {
+    setStation(station.area, b.dataset.t || null); panel.hidden = true;
+  }));
+});
+document.addEventListener("pointerdown", e => {
+  const p = $("station-panel");
+  const el = e.target instanceof Element ? e.target : null;
+  if (p && !p.hidden && !(el && el.closest("#station-box"))) p.hidden = true;
 });
 
 /* Se acabó el día: nada corre de noche. */
@@ -2717,12 +2848,15 @@ $("d-primary").addEventListener("click", () => {
 $("d-finish").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
   const from = c.stage, worked = stageMs(c), who = c.claimedBy || c.tech;
+  const foto = fotoCarro(c);
   finishStage(c);
   c.notes.push({ at:Date.now(), who, stage:from,
     text:`${from} terminada en ${short(worked)}. Libre para ${c.stage}.` });
   toast(c.stage === "Listo"
     ? `<b>${esc(c.brand)} ${esc(c.model)}</b> quedó LISTO · esperando que el cliente lo recoja`
-    : `<b>${esc(c.brand)} ${esc(c.model)}</b> pasó a <b>${esc(c.stage)}</b> · libre para que alguien lo tome`);
+    : `<b>${esc(c.brand)} ${esc(c.model)}</b> pasó a <b>${esc(c.stage)}</b> · libre para que alguien lo tome`,
+    { label:"Deshacer", fn: () => { reponerCarro(foto);
+      toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> volvió a ${esc(from)}`); open(c.id); } });
   open(c.id); paint();
 });
 
@@ -2783,10 +2917,21 @@ $("d-subs-open").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (c) renderSubs(c);
 });
 
+/* Se elige a quién, no se rota por la lista hasta dar con él. */
 $("d-tech").addEventListener("click", () => {
   const c = cars.find(x => x.id === selected); if (!c) return;
-  c.tech = TECHS[(TECHS.indexOf(c.tech)+1) % TECHS.length];
-  open(c.id); paint();
+  const box = $("d-tech-box");
+  box.hidden = !box.hidden;
+  if (box.hidden) return;
+  box.innerHTML = `<div class="subs">` + TECHS.map(t =>
+    `<button type="button" class="sbtn ${t === c.tech ? "on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`
+  ).join("") + `</div>`;
+  box.querySelectorAll(".sbtn").forEach(b => b.addEventListener("click", () => {
+    c.tech = b.dataset.t;
+    if (c.claimedBy) c.claimedBy = c.tech;
+    box.hidden = true;
+    open(c.id); paint();
+  }));
 });
 
 $("d-subs-more").addEventListener("click", () => {
@@ -3003,6 +3148,7 @@ const SAVE_KEY = "topcar_estado_v22";
 function serializar(){
   return JSON.stringify({
     guardado: Date.now(),
+    diaCerrado,           // sin esto, recargar deshacía "Se acabó el día"
     cars: cars.map(c => ({
       ...c,
       arrived: +c.arrived,
@@ -3024,6 +3170,7 @@ function restaurar(){
   try {
     const d = JSON.parse(raw);
     if (!Array.isArray(d.cars) || !d.cars.length) return false;
+    if (d.diaCerrado) diaCerrado = d.diaCerrado;
     cars = d.cars.map(o => {
       const c = newCar({
         id:o.id, brand:o.brand, model:o.model, color:o.color, plate:o.plate,
