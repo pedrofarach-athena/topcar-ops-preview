@@ -997,6 +997,10 @@ header{max-width:100%}
             <input id="m-model" placeholder="Land Cruiser" autocomplete="off"/>
             <span class="err">Falta el modelo</span>
           </div>
+          <div class="f">
+            <label for="m-color">Color</label>
+            <input id="m-color" placeholder="Blanco perlado" autocomplete="off"/>
+          </div>
           <div class="f" id="fw-plate">
             <label for="m-plate">Placa</label>
             <input id="m-plate" placeholder="A123456" autocomplete="off"/>
@@ -1007,11 +1011,15 @@ header{max-width:100%}
             <input id="m-client" placeholder="Sr. Méndez" autocomplete="off"/>
             <span class="err">Falta el cliente</span>
           </div>
+          <div class="f">
+            <label for="m-tech">Responsable</label>
+            <select id="m-tech"></select>
+          </div>
         </div>
       </div>
 
-      <!-- Oscar: "No voy a poner el teléfono del cliente." El campo vive en
-           "Cambiar servicios" para agregarlo después; en la entrada no estorba. -->
+      <!-- Todo a la vista: el que entra el carro no tiene que buscar nada
+           detrás de un "+". El teléfono queda opcional. -->
       <div class="f" id="fw-phone">
         <label for="m-phone">Teléfono del cliente (opcional)</label>
         <input id="m-phone" type="tel" inputmode="tel" placeholder="809 555 0000" autocomplete="off"/>
@@ -1029,25 +1037,10 @@ header{max-width:100%}
         <div class="tipbox" id="m-tip"></div>
       </div>
 
-      <details class="more" id="m-extra">
-        <summary>Más detalles · color, responsable, nota de entrada</summary>
-        <div class="inner">
-          <div class="fgrid">
-            <div class="f">
-              <label for="m-color">Color</label>
-              <input id="m-color" placeholder="Blanco perlado" autocomplete="off"/>
-            </div>
-            <div class="f">
-              <label for="m-tech">Responsable</label>
-              <select id="m-tech"></select>
-            </div>
-          </div>
-          <div class="f" id="m-note-wrap">
-            <label for="m-note">Nota de entrada</label>
-            <textarea id="m-note" rows="2" placeholder="Rayón en el bumper, el cliente pidió revisarlo…"></textarea>
-          </div>
-        </div>
-      </details>
+      <div class="f" id="m-note-wrap">
+        <label for="m-note">Nota de entrada (opcional)</label>
+        <textarea id="m-note" rows="2" placeholder="Rayón en el bumper, el cliente pidió revisarlo…"></textarea>
+      </div>
     </div>
 
     <div class="sheet-f">
@@ -1133,7 +1126,11 @@ const SHOP = {
              ["Instalación de PPF",4],["Tiempo de secado al sol",1],["Revisado y listo",0.5]]
     },
     "Laminado de cristales": {
-      skus:["Cristal delantero","Vehículo completo","P/cristal","3M IR Colorstable","Llumar CTX","Llumar ATR","Lámina anti-rotura cristal delantero"],
+      /* Lo que ya vendía + qué tan oscuro lo quiere el cliente. Se marca la
+         lámina y su tinte: "Llumar CTX" + "Tinte 35%". Ordenados de más claro
+         a más oscuro, como se piden. */
+      skus:["Cristal delantero","Vehículo completo","P/cristal","3M IR Colorstable","Llumar CTX","Llumar ATR","Lámina anti-rotura cristal delantero",
+            "Tinte 70%","Tinte 50%","Tinte 35%","Tinte 15%","Tinte 5%"],
       slaHours: 3,
       steps:[["Cortando la lámina",0.75],["Instalando",1.5],["Revisado y listo",0.5]]
     },
@@ -2860,11 +2857,10 @@ function openModal(mode, car){
   ["fw-brand","fw-model","fw-plate","fw-client","fw-due","m-svcwrap"].forEach(id => $(id).classList.remove("bad"));
   const isNew = mode === "new";
   $("m-veh").hidden = !isNew;
-  $("m-extra").hidden = !isNew;
-  $("m-extra").open = false;
-  /* En la entrada el teléfono no se pide (Oscar no lo va a llenar); se agrega
-     después desde "Cambiar servicios" si hace falta llamar. */
-  $("fw-phone").hidden = isNew;
+  /* La nota de entrada es del momento en que entra el carro; después las
+     notas se escriben en la ficha. El teléfono se ve siempre. */
+  $("m-note-wrap").hidden = !isNew;
+  $("fw-phone").hidden = false;
   $("m-title").textContent = isNew ? "Entró un vehículo" : "Cambiar servicios";
   $("m-save").textContent = isNew ? "Guardar y poner en Recepción" : "Guardar cambios";
 
