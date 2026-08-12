@@ -199,13 +199,14 @@ main{padding:16px 20px 28px;min-width:0}
 }
 .card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
 .card.sel{outline:2px solid var(--ink);outline-offset:1px}
-/* Sólido, que se vea del otro lado del taller: borde grueso Y la tarjeta
-   teñida del color del estado. Pedro: "los colores más sólidos". */
-.card.is-run{border-color:var(--run);background:var(--run-bg)}
-.card.is-pause{border-color:var(--hold);background:var(--hold-bg)}
-.card.is-free{border-color:var(--pause);background:var(--pause-bg)}
+/* Sólido pero limpio: la tarjeta queda blanca, el borde grueso lleva el
+   estado y la píldora va RELLENA del color puro. El lavadito pastel de
+   fondo leía a amarillento — fuera. */
+.card.is-run{border-color:var(--run-hot)}
+.card.is-pause{border-color:var(--hold)}
+.card.is-free{border-color:var(--pause-hot)}
 .card.is-done{border-color:var(--line)}
-.card.is-late{border-color:var(--late);background:var(--late-bg)}
+.card.is-late{border-color:var(--late-hot)}
 .card .name{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
 .card .sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
 /* La placa como placa: se reconoce de un golpe, como en el parqueo. */
@@ -224,16 +225,18 @@ main{padding:16px 20px 28px;min-width:0}
 }
 .tag.sub{border-style:dashed}
 .pill{
-  display:inline-flex;align-items:center;gap:6px;font-family:var(--disp);font-size:10px;font-weight:700;
-  letter-spacing:.12em;text-transform:uppercase;padding:4px 9px;border-radius:999px;
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--disp);font-size:10.5px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px;
   background:var(--idle-bg);color:var(--idle)
 }
-.pill.run{background:var(--run-bg);color:var(--run)}
-/* Un color, un significado: ámbar = SIN TOMAR (nadie encima), gris pizarra =
-   PAUSADO/overnight. La píldora de pausa salía ámbar y confundía los dos. */
-.pill.pause{background:var(--hold-bg);color:var(--hold)}
-.pill.late{background:var(--late-bg);color:var(--late)}
-.pill.free{background:var(--pause-bg);color:var(--pause)}
+/* La píldora RELLENA del color puro del estado: el punto de color fuerte de
+   la tarjeta. Un color, un significado: naranja = SIN TOMAR, gris pizarra =
+   pausado/overnight, verde = trabajando, rojo = pasó la entrega. */
+.pill.run{background:var(--run-hot);color:var(--on-accent)}
+.pill.pause{background:var(--hold);color:var(--on-accent)}
+.pill.late{background:var(--late-hot);color:var(--on-accent)}
+.pill.free{background:var(--pause-hot);color:var(--on-accent)}
+.pill.run .dot,.pill.pause .dot,.pill.late .dot,.pill.free .dot{background:currentColor}
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
 .card .who{font-size:11px;color:var(--muted)}
