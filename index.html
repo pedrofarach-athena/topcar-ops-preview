@@ -745,8 +745,11 @@ details.more > .inner{display:flex;flex-direction:column;gap:16px;margin-top:14p
 .login-sub{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
 .login-caja label{font-family:var(--disp);font-size:11px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--muted);margin-top:4px}
+/* El código se escribe en tablets, muchas veces con guantes: campo grande,
+   letra grande y espaciada. */
 .login-caja input{border:1px solid var(--line);border-radius:10px;background:var(--paper);
-  padding:12px;font:inherit;color:var(--ink)}
+  padding:15px 14px;font-family:var(--mono);font-size:19px;letter-spacing:.14em;
+  color:var(--ink);text-align:center}
 .login-caja input:focus{outline:2px solid var(--ink-2);outline-offset:-1px}
 .login-caja .btn{margin-top:12px}
 .login-msg{font-size:12.5px;color:var(--late);background:var(--late-bg);
@@ -872,11 +875,10 @@ header{max-width:100%}
       <img src="assets/topcar-logo.png" alt="Topcar By LCP Group"/>
     </div>
     <h1>Centro de operaciones</h1>
-    <p class="login-sub">Entra con el usuario que te dieron.</p>
-    <label for="login-mail">Correo</label>
-    <input id="login-mail" type="email" autocomplete="username" required/>
-    <label for="login-pass">Contraseña</label>
-    <input id="login-pass" type="password" autocomplete="current-password" required/>
+    <p class="login-sub">Entra con tu código.</p>
+    <label for="login-code">Código de acceso</label>
+    <input id="login-code" type="password" inputmode="text" autocomplete="one-time-code"
+           autocapitalize="characters" spellcheck="false" required/>
     <button type="submit" class="btn go row">Entrar</button>
     <div class="login-msg" id="login-msg" hidden></div>
   </form>
@@ -2063,6 +2065,30 @@ function alAbrir(t){
   }
   return +d;
 }
+/* El último momento en que el taller estuvo abierto, mirando hacia atrás.
+   Sirve de tope: una etapa no pudo cerrarse después de que cerró el taller,
+   así que si la cuenta se pasa, se recorta a la hora de cierre y no a "ahora"
+   —que puede ser de noche—. */
+function ultimoMomentoLaboral(ahora){
+  const d = new Date(ahora);
+  for (let i = 0; i < 8; i++) {
+    const cierre = new Date(d);
+    cierre.setDate(d.getDate() - i);
+    const sabado = cierre.getDay() === 6;
+    if (cierre.getDay() === 0) continue;                  // domingo cerrado
+    cierre.setHours(sabado ? SHOP.hours.satCloseH : SHOP.hours.closeH,
+                    sabado ? SHOP.hours.satCloseM : SHOP.hours.closeM, 0, 0);
+    if (i === 0 && ahora < +cierre) {
+      const abre = new Date(d);
+      abre.setHours(SHOP.hours.openH, SHOP.hours.openM, 0, 0);
+      if (ahora >= +abre) return ahora;                   // estamos en jornada
+      continue;                                           // antes de abrir
+    }
+    if (+cierre <= ahora) return +cierre;
+  }
+  return ahora;
+}
+
 /* Avanza `ms` de reloj de taller desde `t`, saltando de una noche a la
    mañana siguiente. */
 function avanzarLaboral(t, ms){
@@ -2162,10 +2188,11 @@ function avanzarLaboral(t, ms){
      datos de ejemplo mostraban etapas cerradas a las 10 de la noche y a la
      una de la madrugada, con un taller que cierra 5:30 — el primer número que
      le haría dudar a Oscar de todo lo demás. */
+  const tope = ultimoMomentoLaboral(now - 60000);
   cars.forEach(c => {
     let t = alAbrir(+c.arrived);
     c.stageLog.forEach(l => {
-      t = Math.min(avanzarLaboral(t, (l.work || 0) + (l.wait || 0)), now - 60000);
+      t = Math.min(avanzarLaboral(t, (l.work || 0) + (l.wait || 0)), tope);
       l.at = t;
     });
   });
@@ -3519,6 +3546,20 @@ const NUBE = {
   anonKey: "",    // la clave "anon public" del panel de Supabase
 };
 
+/* ── LOS DOS CÓDIGOS DEL TALLER ────────────────────────────────────────
+   Oscar quiso códigos, no correo y contraseña: cada persona entra con el
+   suyo y ya. Por debajo cada código ES la contraseña de su cuenta, así que
+   la seguridad es la misma; lo que cambia es que no hay que escribir un
+   correo en una tablet con las manos sucias.
+
+   Se prueban en orden hasta que uno entra: el código solo ya dice quién es.
+   Los correos se ven en el archivo (no son secretos) — el secreto es el
+   código, así que tiene que ser largo y no estar escrito en la pared. */
+const CUENTAS = [
+  // { correo: "oscar@topcar.do",        quien: "Oscar" },
+  // { correo: "operaciones@topcar.do",  quien: "Gerente de operaciones" },
+];
+
 const enLaNube = () => !!(NUBE.url && NUBE.anonKey);
 let sb = null;              // cliente de Supabase
 let sesion = null;          // sesión abierta
@@ -3620,11 +3661,29 @@ function pintarEntrada(mensaje){
   $("login-msg").hidden = !mensaje;
 }
 
-async function entrar(correo, clave){
-  const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: clave });
-  if (error) { pintarEntrada("No se pudo entrar. Revisa el correo y la contraseña."); return; }
-  sesion = data.session;
-  await arrancarConSesion();
+/* Entrar con el código. Se prueba contra cada cuenta del taller hasta que
+   una lo acepta: el código solo basta para saber quién entró. */
+async function entrar(codigo){
+  const cod = (codigo || "").trim();
+  if (!cod) return;
+  const btn = $("login-form").querySelector("button[type=submit]");
+  btn.disabled = true; btn.textContent = "Entrando…";
+  try {
+    for (const cuenta of CUENTAS) {
+      const { data, error } = await sb.auth.signInWithPassword({
+        email: cuenta.correo, password: cod });
+      if (!error && data && data.session) {
+        sesion = data.session;
+        await arrancarConSesion();
+        return;
+      }
+    }
+    pintarEntrada("Ese código no es válido. Revísalo con Pedro.");
+  } catch (e) {
+    pintarEntrada("No hay conexión con el taller. Inténtalo otra vez.");
+  } finally {
+    btn.disabled = false; btn.textContent = "Entrar";
+  }
 }
 
 async function arrancarConSesion(){
@@ -3714,7 +3773,7 @@ async function arrancar(){
 
 $("login-form").addEventListener("submit", e => {
   e.preventDefault();
-  entrar($("login-mail").value.trim(), $("login-pass").value);
+  entrar($("login-code").value);
 });
 $("salir").addEventListener("click", async () => {
   if (sb) await sb.auth.signOut();
