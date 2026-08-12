@@ -362,6 +362,22 @@ body.card-open .veil{display:block}
 .sec{display:grid;gap:8px}
 .sec > .lbl{font-family:var(--disp);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 
+/* LO QUE CONTRATÓ EL CLIENTE — lo primero que hay que ver de un carro:
+   qué le van a hacer. Va grande. Cambiarlo se hace de vez en cuando, así
+   que su botón vive chiquito debajo y no le roba el sitio. */
+#d-svc{display:flex;flex-wrap:wrap;gap:8px}
+#d-svc .tag{
+  font-family:var(--disp);font-size:17px;font-weight:700;letter-spacing:.03em;
+  padding:10px 15px;border-radius:10px;border:2px solid var(--ink);
+  background:var(--card);color:var(--ink)
+}
+#d-svc:empty::after{content:"Sin servicios anotados";font-size:12.5px;color:var(--muted)}
+#d-svc-edit{
+  justify-self:start;padding:7px 11px;font-size:11px;font-weight:600;letter-spacing:.06em;
+  color:var(--ink-2);border-color:var(--line);background:transparent
+}
+#d-svc-edit:hover{border-color:var(--ink);color:var(--ink)}
+
 .steps{display:grid;gap:6px}
 .step{
   display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;
@@ -908,8 +924,8 @@ header{max-width:100%}
   <div class="d-col">
 <div class="sec s-svc">
           <div class="lbl">Servicios contratados</div>
-          <div class="chips" id="d-svc" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-          <button type="button" class="btn alt row" id="d-svc-edit">Cambiar lo que pidió el cliente</button>
+          <div class="chips" id="d-svc"></div>
+          <button type="button" class="btn sm" id="d-svc-edit">Cambiar lo que pidió el cliente</button>
           <div class="chglog" id="d-chg"></div>
         </div>
 <div class="sec s-ledger">
