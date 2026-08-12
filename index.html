@@ -668,12 +668,17 @@ body.station-on .board .col{min-width:0}
   .step{min-height:58px}
   .leyenda{margin-left:0;width:100%;order:9}
 }
-/* ── iPAD / VENTANA MEDIANA: el pipeline COMPLETO, sin scroll de lado ──
-   Con 5 columnas deslizables, "Listo" quedaba fuera de la pantalla y
-   parecía que no existía. En tablet el tablero se dobla en dos columnas:
-   todo visible, nada escondido. */
+/* ── TABLET: el pipeline COMPLETO, sin scroll de lado ──
+   Con 5 columnas deslizables, "Listo" quedaba fuera de la pantalla y parecía
+   que no existía — en el iPad del taller eso es media operación escondida.
+   El tablero se dobla según el ancho: nada se esconde de lado. */
 @media (max-width:980px) and (min-width:641px){
   .board{grid-template-columns:1fr 1fr;overflow-x:visible}
+  .board .col{min-width:0}
+}
+/* iPad horizontal (1024) y ventanas medianas: tres columnas. */
+@media (max-width:1200px) and (min-width:981px){
+  .board{grid-template-columns:repeat(3,minmax(0,1fr));overflow-x:visible}
   .board .col{min-width:0}
 }
 
@@ -797,7 +802,7 @@ header{max-width:100%}
             <h2>Tiempo promedio por etapa</h2>
             <div id="avg-stages"></div>
             <p style="margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.5">
-              Solo cuenta tiempo de trabajo real. Overnight y pausas no suman.
+              Solo cuenta tiempo de trabajo real. La noche y las pausas no suman.
             </p>
           </div>
           <div class="box">
@@ -1082,7 +1087,7 @@ const SHOP = {
     "Modesta Coatings": {
       /* Los cuatro que Oscar dictó en la reunión 2. "Corin": confirmar con él
          si es modelo aparte o parte del nombre completo. */
-      skus:["Modesta Corin","Modesta BC-04","Modesta BC-X","Modesta BC-08"],
+      skus:["Modesta BC-04","Modesta BC-X","Modesta BC-08","Modesta BC-T","Modesta Corin"],
       slaDays: 2,
       steps:[["Lavado",0.75],["Descontaminación de pintura",1],["Corrección de pintura",3],
              ["Aplicación de Modesta",2.5],["Curado de Modesta con lámparas IR",2],["Revisado y listo",0.5]]
@@ -1356,9 +1361,9 @@ function dur(ms){
   if (m) return `${m}m ${String(s).padStart(2,"0")}s`;
   return `${s}s`;
 }
-function shortSku(s){
-  return s.replace(/^Modesta /,"M ").replace(/^Pintura /,"P ").replace(/^Lámina /,"L ");
-}
+/* El nombre del producto se muestra COMPLETO: son los nombres que Oscar
+   dictó, y abreviarlos ("M BC-08", "P VEH. COMPLETO") los volvía ilegibles. */
+function shortSku(s){ return s; }
 
 /* ---------- model ---------- */
 function newCar(o){
@@ -1416,7 +1421,7 @@ function relojVivo(c){
     : { txt: short(carWork(c)), cap: "total trabajado" };
   if (st === "free")  return { txt: hms(waitMs(c)),  cap: "nadie lo ha tomado" };
   if (st === "pause") return { txt: hms(stageMs(c)),
-    cap: c.overnight ? "overnight · el taller estaba cerrado" : `pausado por ${c.claimedBy || c.tech}` };
+    cap: c.overnight ? "el taller estaba cerrado" : `pausado por ${c.claimedBy || c.tech}` };
   return { txt: hms(stageMs(c)), cap: atStage(c.stage) };
 }
 
@@ -1643,6 +1648,15 @@ function toggleSub(c, name){
       }
     }
   } else {
+    /* Marcar una subetapa ES ponerse a trabajar: si el carro estaba parado o
+       sin tomar, se toma y arranca. Antes el cronómetro de la subetapa se
+       quedaba clavado en 0:00:00 y parecía roto. */
+    if (!c.running && c.stage !== "Listo") {
+      const quien = station.tech || c.claimedBy || c.tech;
+      if (!c.claimedBy) claim(c, quien); else start(c);
+      c.notes.push({ at:Date.now(), who:quien, stage:c.stage,
+                     text:`${quien} arrancó el trabajo al marcar ${name}.` });
+    }
     c.activeSubs.add(name);
     c.subMs[name] = 0;             // SIEMPRE arranca en 0 — reset por activación
     c.subFrom[name] = c.running ? Date.now() : null;
@@ -1684,7 +1698,7 @@ function stateOf(c){
 function stateLabel(c){
   const s = stateOf(c);
   if (s === "run") return "En trabajo";
-  if (s === "pause") return c.overnight ? "Overnight" : "En pausa";
+  if (s === "pause") return c.overnight ? "Taller cerrado" : "En pausa";
   if (s === "done") return "Listo";
   return "Sin tomar";
 }
@@ -1710,7 +1724,7 @@ let cars = [
     tech:"Carlos P.", skus:["PPF Full Car"], due:new Date(now + 26*H), arrived:new Date(now - 30*H), stage:"En proceso" }),
   newCar({ id:"V-104", brand:"Porsche", model:"Macan", color:"Azul zafiro", plate:"D220417", client:"Sra. Cabrera",
     tech:"María G.", skus:["Llumar CTX","Cristal delantero"], due:new Date(now + 5*H), arrived:new Date(now - 3*H),
-    stage:"En proceso" }),
+    stage:"En proceso", phone:"809 555 0104" }),
   newCar({ id:"V-105", brand:"Ford", model:"F-150", color:"Rojo", plate:"E907741", client:"Flota Caribe",
     tech:"Equipo A", skus:["Pintura veh. completo"], due:new Date(now - 4*H), arrived:new Date(now - 4*24*H),
     stage:"En proceso" }),
@@ -1719,7 +1733,7 @@ let cars = [
     stage:"Control de calidad" }),
   newCar({ id:"V-107", brand:"Lexus", model:"RX", color:"Champagne", plate:"G118265", client:"Sr. Collado",
     tech:"Equipo B", skus:["Modesta BC-08","Llumar ATR"], due:new Date(now + 8*H), arrived:new Date(now - 28*H),
-    stage:"Listo" }),
+    stage:"Listo", phone:"809 555 0107" }),
   newCar({ id:"V-108", brand:"Nissan", model:"Frontier", color:"Plata", plate:"H660184", client:"AutoRent RD",
     tech:"Luis M.", skus:["PPF P/P"], due:new Date(now + 30*H), arrived:new Date(now - 5*60000), stage:"Recepción" })
 ];
@@ -1742,9 +1756,14 @@ let cars = [
   const c102 = cars.find(c=>c.id==="V-102");
   c102.stageMs = { "Recepción":h(0.5), "Preparación":h(2.6), "En proceso":0, "Control de calidad":0, "Listo":0 };
   c102.subMs = { "Lavado":h(1.0), "Descontaminación de pintura":h(1.6) };
-  c102.everStarted = true; c102.activeSubs = new Set(["Descontaminación de pintura"]);
-  pause(c102, true);
-  c102.notes.push({ at: now - 40*60000, who:"Ana R.", text:"Overnight — el equipo salió 6:00 p.m. Reanudar en la mañana." });
+  /* Llega TRABAJANDO y sin subetapa marcada: es el carro con el que se
+     enseña el cronómetro por subetapa — se marca Lavado, corre desde cero, se
+     quita y arranca solo el paso siguiente. Si llegara con una subetapa ya
+     activa, ese arranque automático no dispararía. */
+  c102.everStarted = true;
+  c102.claimedBy = "Ana R.";
+  start(c102);
+  c102.notes.push({ at: now - 40*60000, who:"Ana R.", text:"Cliente pidió revisar el capó antes de la corrección." });
 
   const c105 = cars.find(c=>c.id==="V-105");
   c105.stageMs = { "Recepción":h(0.7), "Preparación":h(6.5), "En proceso":h(14.2), "Control de calidad":0, "Listo":0 };
@@ -1942,7 +1961,7 @@ function renderKpis(){
   const items = [
     ["En taller", L.length, "vehículos activos", ""],
     ["Eficiencia de flujo", fl.pct === null ? "—" : fl.pct + "%",
-      fl.pct === null ? "sin datos" : `de cada hora en el taller, ${Math.round(fl.pct*0.6)} min son trabajo`,
+      fl.pct === null ? "sin datos" : `de cada hora contada, ${Math.round(fl.pct*0.6)} min son trabajo y ${60 - Math.round(fl.pct*0.6)} son espera`,
       fl.pct === null ? "" : fl.pct < 40 ? "late" : fl.pct < 60 ? "pause" : "run"],
     ["En trabajo", running, "cronómetro corriendo", "run"],
     ["Sin tomar", free, free ? `${short(deadNow)} perdidos esperando` : "ninguno esperando", free ? "pause" : ""],
@@ -1968,7 +1987,9 @@ function renderAreas(){
     return `<div class="area ${free ? "has-free" : ""}">
       <div class="a-k">${esc(s)}</div>
       <div class="a-n">${here.length}<em>${here.length === 1 ? "carro" : "carros"}${free ? ` · ${free} sin tomar` : ""}</em></div>
-      <div class="a-s">${avg ? `promedio ${short(avg)}` : "sin datos todavía"}</div>
+      <div class="a-s">${avg
+        ? `promedio ${short(avg)} · de ${withTime.length} ${withTime.length === 1 ? "carro" : "carros"}`
+        : "sin datos todavía"}</div>
     </div>`;
   }).join("");
 }
@@ -2110,6 +2131,7 @@ function renderMgmt(){
 
   // La lista de a quién llamar: etapas que se pasaron, con nombre y número.
   const ov = overruns();   // cada fila trae su motivo, si lo anotaron
+  const ovResto = Math.max(0, ov.length - 10);
   $("overruns").innerHTML = ov.length ? ov.slice(0,10).map(o => `
     <div class="ov ${varClass(o.v)}">
       <span class="ov-car">${esc(o.car.brand)} ${esc(o.car.model)}<em>${esc(o.car.plate)}</em></span>
@@ -2120,7 +2142,8 @@ function renderMgmt(){
       <span class="ov-why ${o.why ? "" : "falta"}">${o.why
         ? esc(o.why.text) + `<em>${esc(o.why.who)}</em>`
         : "sin motivo anotado"}</span>
-    </div>`).join("")
+    </div>`).join("") + (ovResto
+      ? `<div class="note">y ${ovResto} etapa(s) más que también se pasaron.</div>` : "")
     : `<div class="note">Ninguna etapa se pasó del tiempo esperado.</div>`;
   $("tgt-note").textContent = TARGETS_CONFIRMED
     ? "Tiempos esperados confirmados por Topcar."
@@ -2139,7 +2162,10 @@ function renderMgmt(){
 
   const al = live().filter(c => (dueParts(c).late && c.stage!=="Listo") || stateOf(c)==="pause" || stateOf(c)==="free")
     .map(c => `<div class="note"><span class="w">${esc(c.plate)} · ${esc(c.tech)}</span>
-      ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} ${esc(atStage(c.stage))} · entrega ${dueText(c)}</div>`);
+      ${esc(c.brand)} ${esc(c.model)} — ${esc(stateLabel(c))} ${esc(atStage(c.stage))} · ${
+        dueParts(c).late && c.stage !== "Listo"
+          ? "pasó la entrega por " + esc(dueText(c).replace("−",""))
+          : "entrega en " + esc(dueText(c))}</div>`);
   $("alerts").innerHTML = al.join("") || `<div class="note">Todo dentro de lo esperado.</div>`;
 
   /* El dato sólo sirve si no se puede maquillar. Esta función marcaba los
@@ -2564,7 +2590,7 @@ $("station-btn").addEventListener("click", () => {
 $("end-day").addEventListener("click", () => {
   const n = endDay();
   paint();
-  alert(n ? `${n} cronómetro(s) pausados. Vuelven solos a las 8:15 a. m.`
+  toast(n ? `<b>${n}</b> cronómetro(s) pausados · vuelven solos a las 8:15 a. m.`
           : "No había cronómetros corriendo.");
 });
 
@@ -2694,7 +2720,17 @@ function estimate(skus){
   const lines = fams.map(f => SLA[f]?.txt).filter(Boolean);
   const sinRef = fams.filter(f => !SLA[f]?.ms);
   let ms = null;
-  if (fams.length > 1) { ms = COMBO_MS; lines.push("Varios servicios juntos: 5–6 días."); }
+  if (fams.length > 1) {
+    /* La regla de "5–6 días" es para varios trabajos LARGOS a la vez. Dos
+       servicios de horas siguen siendo cuestión de horas: proponer 6 días
+       por unas alfombras y un laminado espanta al cliente. */
+    const largos = fams.filter(f => SHOP.services[f]?.slaDays);
+    if (largos.length > 1) { ms = COMBO_MS; lines.push("Varios trabajos largos juntos: 5–6 días."); }
+    else {
+      ms = fams.reduce((a,f) => Math.max(a, SLA[f]?.ms || 0), 0) || null;
+      if (ms) lines.push("Se pueden hacer en paralelo — manda el más largo.");
+    }
+  }
   else ms = SLA[fams[0]]?.ms || null;
   if (sinRef.length) lines.push(`Confirma la entrega con el cliente: no hay referencia de ${sinRef.join(" ni ")}.`);
   return { ms, lines };
@@ -2854,7 +2890,12 @@ $("m-save").addEventListener("click", () => {
    OJO, y hay que decirlo claro: esto guarda en ESTA tablet. No sincroniza
    entre tablets. Que el de pintura y el de preparación vean los mismos carros
    necesita un servidor — eso es la versión de producción, no esto. */
-const SAVE_KEY = "topcar_estado_v1";
+/* La llave sube con la versión: así todo el mundo abre la demo con los carros
+   de ejemplo frescos ("los carros que ves son de ejemplo" — el correo de
+   Oscar). Con la llave vieja, quien ya la hubiera jugado seguía con SU estado
+   guardado, y el paso que enseña el arranque automático de la subetapa
+   siguiente podía no dispararse delante del cliente. */
+const SAVE_KEY = "topcar_estado_v22";
 
 function serializar(){
   return JSON.stringify({
@@ -2892,6 +2933,31 @@ function restaurar(){
         activeSubs:new Set(o.activeSubs || []),
       });
       migrateSubs(c);   // partidas guardadas con el modelo viejo de subMs
+      /* El tiempo con la pantalla cerrada no es trabajo ni espera de nadie.
+         Se cierra la cuenta en el momento del guardado y se sigue desde
+         ahora; si no, abrir el link al otro día se tragaba la noche entera. */
+      if (d.guardado && Date.now() - d.guardado > 60000) {
+        const corte = d.guardado, ahora = Date.now();
+        if (c.running && c.runFrom && corte > c.runFrom) {
+          c.stageMs[c.stage] = (c.stageMs[c.stage]||0) + (corte - c.runFrom);
+          c.runFrom = ahora;
+        }
+        Object.keys(c.subFrom || {}).forEach(n => {
+          const desde = c.subFrom[n];
+          if (desde && corte > desde) {
+            c.subMs[n] = (c.subMs[n]||0) + (corte - desde);
+            c.subFrom[n] = c.running ? ahora : null;
+          }
+        });
+        if (!c.claimedBy && c.waitFrom && corte > c.waitFrom) {
+          c.waitMs[c.stage] = (c.waitMs[c.stage]||0) + (corte - c.waitFrom);
+          c.waitFrom = ahora;
+        }
+        if (c.pauseFrom && corte > c.pauseFrom) {
+          c.pauseMs[c.stage] = (c.pauseMs[c.stage]||0) + (corte - c.pauseFrom);
+          c.pauseFrom = ahora;
+        }
+      }
       return c;
     });
     return true;
