@@ -238,6 +238,16 @@ main{padding:16px 20px 28px;min-width:0}
 .pill.free{background:var(--pause-hot);color:var(--on-accent)}
 .pill.run .dot,.pill.pause .dot,.pill.late .dot,.pill.free .dot{background:currentColor}
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* LO QUE LE TOCA AL CARRO, en la tarjeta. Oscar: "el empleado no puede ver
+   lo que le toca… eso hay que buscar mucho". Va antes que nada. */
+.card .svcs{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.card .svc{
+  font-family:var(--disp);font-size:12px;font-weight:700;letter-spacing:.02em;
+  padding:5px 9px;border-radius:7px;border:1.5px solid var(--ink);
+  background:var(--card);color:var(--ink)
+}
+.card .svc.mas{border-style:dashed;color:var(--muted);border-color:var(--line)}
+
 /* La nota que escribió una persona, en la tarjeta. Es lo que hay que saber
    del carro antes de tocarlo: si vive escondida en la ficha, no se lee. */
 .card .nota{
@@ -246,6 +256,25 @@ main{padding:16px 20px 28px;min-width:0}
   font-size:11.5px;line-height:1.35;color:var(--ink-2)
 }
 .card .nota b{font-weight:600;color:var(--ink)}
+/* Parado por algo de fuera: se marca en la ficha y se lee en la tarjeta. */
+.esperas{display:flex;gap:8px;flex-wrap:wrap}
+.esperas[hidden]{display:none}
+.espera{
+  flex:1;min-width:140px;border:1.5px solid var(--line);background:var(--card);color:var(--ink-2);
+  border-radius:10px;padding:11px 12px;font-family:var(--disp);font-size:12px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer
+}
+.espera:hover{border-color:var(--pause-hot)}
+.espera.on{background:var(--pause-hot);border-color:var(--pause-hot);color:var(--on-accent)}
+.card.is-espera{border-color:var(--pause-hot)}
+
+/* No se borra al avanzar de etapa: es historia del carro. */
+.card .paso{
+  margin-top:8px;padding:5px 9px;border-radius:7px;
+  background:var(--late-bg);border:1px solid var(--late);color:var(--late);
+  font-family:var(--disp);font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase
+}
 .card .nota .txt{
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden;min-width:0
@@ -309,7 +338,9 @@ body.card-open .veil{display:block}
 /* Primero lo que se TOCA (relojes, botones, etapas, subetapas); después lo
    que se CONSULTA (hoja de vida, ficha, notas). .d-b es flex column, así
    que el orden se ajusta sin mover el HTML. */
-.s-vida{order:1} .s-notas{order:2} details.more{order:3} #d-remove{order:4}
+.s-tech{order:1} .s-vida{order:2} .s-notas{order:3} #d-remove{order:4}
+.resp{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.resp-n{font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.02em}
 .d-par{display:grid;grid-template-columns:1fr;gap:18px}
 .d-col{display:flex;flex-direction:column;gap:18px;min-width:0}
 @media (min-width:760px){
@@ -929,6 +960,7 @@ header{max-width:100%}
 
         <button type="button" class="btn go row" id="d-primary">Iniciar trabajo</button>
         <button type="button" class="btn fin row" id="d-finish" hidden>Terminar etapa</button>
+        <div class="esperas" id="d-esperas"></div>
         <button type="button" class="btn alt row" id="d-paid" hidden>Marcar cobrado</button>
         <button type="button" class="btn go row" id="d-deliver" hidden>El cliente lo recogió</button>
 
@@ -976,19 +1008,14 @@ header{max-width:100%}
           </div>
         </div>
 
-        <details class="more" id="d-more">
-          <summary id="d-more-s">Responsable del vehículo</summary>
-          <div class="inner">
-
-            <div class="sec">
-              <div class="lbl">Responsable</div>
-              <div class="miniline"><span class="k" id="d-tech-v">—</span></div>
-              <button type="button" class="btn sm" id="d-tech">Reasignar</button>
-              <div class="pickbox" id="d-tech-box" hidden></div>
-            </div>
-
+        <div class="sec s-tech">
+          <div class="lbl">Responsable</div>
+          <div class="resp">
+            <span class="resp-n" id="d-tech-v">—</span>
+            <button type="button" class="btn sm" id="d-tech">Cambiar</button>
           </div>
-        </details>
+          <div class="pickbox" id="d-tech-box" hidden></div>
+        </div>
 
         <div class="sec s-notas">
           <div class="lbl">Notas del técnico</div>
@@ -1113,7 +1140,10 @@ const SHOP = {
   subtitle: "#AlwaysOnTop",   /* el eslogan de LCP: las mayúsculas son parte del eslogan */
   locale: "es-DO",
   /* El día del taller. Los cronómetros se congelan al cerrar y vuelven solos. */
-  hours: { openH: 8, openM: 15, closeH: 17, closeM: 30 },
+  hours: { openH: 8, openM: 15, closeH: 17, closeM: 30,
+           /* El sábado se trabaja hasta las 12; el domingo no se trabaja.
+              Los cronómetros no vuelven hasta el lunes a las 8:15. */
+           satCloseH: 12, satCloseM: 0 },
 
   /* Las áreas físicas. Cada una puede ser la tablet de alguien.
      target = lo que debería durar. null = sin referencia todavía. */
@@ -1250,6 +1280,30 @@ const STAGE_TARGET = Object.fromEntries(SHOP.stages.map(s => [s.name, s.target ?
 const SUB_TARGET = Object.fromEntries(
   Object.values(SHOP.services).flatMap(v => v.steps).map(([n,h]) => [n, h*H]));
 
+/* ══ CUÁNTO DEBE DURAR UNA ETAPA, PARA ESTE CARRO ═══════════════════════
+   Oscar, viendo la pantalla: "va pasado de tiempo, ¿pero por qué?".
+   El objetivo era fijo por etapa (Preparación = 2h) para TODOS los carros.
+   Pero una preparación de un lavado no es la de un carro que lleva Modesta +
+   PPF + laminado. Con un número fijo, mientras más servicios contrata el
+   cliente, más "pasado de tiempo" salía el taller — castigando justo el
+   trabajo que más se cobra.
+
+   Ahora se suman los pasos que ESE carro tiene que hacer en ESA etapa. Si el
+   carro no tiene servicios que toquen la etapa, se usa el número general. */
+function metaEtapa(c, stage){
+  if (!c) return STAGE_TARGET[stage];
+  const enEtapa = (SHOP.stageSubs || {})[stage];
+  if (!Array.isArray(enEtapa)) return STAGE_TARGET[stage];
+  const pasos = new Set();
+  famsOf(c.skus).forEach(f => (SHOP.services[f]?.steps || []).forEach(([n]) => {
+    if (enEtapa.includes(n)) pasos.add(n);
+  }));
+  if (!pasos.size) return STAGE_TARGET[stage];
+  let total = 0;
+  pasos.forEach(n => { total += SUB_TARGET[n] || 0; });
+  return total || STAGE_TARGET[stage];
+}
+
 /* Cuánto se pasó (o se ahorró) contra lo esperado. null = sin referencia. */
 function variance(actualMs, targetMs){
   if (!targetMs || !actualMs) return null;
@@ -1308,11 +1362,11 @@ function alerts(){
     }
     // 1. Alguien está encima del tiempo, ahora mismo.
     if (c.claimedBy && c.running) {
-      const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
+      const v = variance(stageMs(c), metaEtapa(c, c.stage));
       if (v && v.pct >= A.overPct) out.push({
         sev: v.pct >= 100 ? "alta" : "media", kind:"over", car:c,
         title:`${c.brand} ${c.model} lleva ${short(stageMs(c))} ${atStage(c.stage)}`,
-        detail:`Debía durar ${short(STAGE_TARGET[c.stage])} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`
+        detail:`Debía durar ${short(metaEtapa(c, c.stage))} · va ${v.pct > 0 ? "+" : ""}${v.pct}% · ${c.claimedBy}`
           + (c.changes.some(x => x.stage === c.stage)
              ? " · el cliente amplió el trabajo en esta etapa" : "")
           + (delayReason(c, c.stage)
@@ -1333,7 +1387,7 @@ function alerts(){
     }
     // 3. La promesa al cliente está en riesgo (proyección, no adivinanza).
     const left = STAGES.slice(STAGES.indexOf(c.stage))
-      .reduce((a,s) => a + (STAGE_TARGET[s] || 0), 0) - stageMs(c);
+      .reduce((a,s) => a + (metaEtapa(c, s) || 0), 0) - stageMs(c);
     const until = c.due - Date.now();
     if (left > 0 && until > 0 && left > until - A.promiseRiskH*H) out.push({
       sev: left > until ? "alta" : "media", kind:"promise", car:c,
@@ -1353,7 +1407,7 @@ function integrityFlags(){
   const out = [];
   live().forEach(c => {
     c.stageLog.forEach(l => {
-      const tgt = STAGE_TARGET[l.stage];
+      const tgt = metaEtapa(c, l.stage);
       if (tgt && l.work > 0 && l.work < tgt*0.2) out.push({
         car:c, stage:l.stage, tech:l.tech, kind:"muy-rapido",
         text:`${l.stage} cerrada en ${short(l.work)} contra una meta de ${short(tgt)} — confirmar que se hizo`
@@ -1376,16 +1430,16 @@ function overruns(){
   const out = [];
   live().forEach(c => {
     c.stageLog.forEach(l => {
-      const v = variance(l.work, STAGE_TARGET[l.stage]);
+      const v = variance(l.work, metaEtapa(c, l.stage));
       if (v && v.over > 0) out.push({ car:c, stage:l.stage, tech:l.tech, real:l.work,
-                                      target:STAGE_TARGET[l.stage], v, wait:l.wait,
+                                      target:metaEtapa(c, l.stage), v, wait:l.wait,
                                       why: delayReason(c, l.stage) });
     });
     // la etapa en curso también, si ya se pasó
     if (c.stage !== "Listo" && c.claimedBy) {
-      const v = variance(stageMs(c), STAGE_TARGET[c.stage]);
+      const v = variance(stageMs(c), metaEtapa(c, c.stage));
       if (v && v.over > 0) out.push({ car:c, stage:c.stage, tech:c.claimedBy, real:stageMs(c),
-                                      target:STAGE_TARGET[c.stage], v, wait:waitMs(c), live:true,
+                                      target:metaEtapa(c, c.stage), v, wait:waitMs(c), live:true,
                                       why: delayReason(c, c.stage) });
     }
   });
@@ -1396,7 +1450,7 @@ function byTech(){
   const m = {};
   cars.forEach(c => c.stageLog.forEach(l => {
     if (!l.tech) return;
-    const tgt = STAGE_TARGET[l.stage];
+    const tgt = metaEtapa(c, l.stage);
     const r = m[l.tech] || (m[l.tech] = { n:0, work:0, target:0, over:0 });
     r.n++; r.work += l.work;
     if (tgt) { r.target += tgt; if (l.work > tgt) r.over++; }
@@ -1407,7 +1461,7 @@ function byTech(){
     if (c.stage === "Listo" || !c.claimedBy) return;
     const w = stageMs(c);
     if (!w) return;
-    const tgt = STAGE_TARGET[c.stage];
+    const tgt = metaEtapa(c, c.stage);
     const r = m[c.claimedBy] || (m[c.claimedBy] = { n:0, work:0, target:0, over:0 });
     r.n++; r.work += w;
     if (tgt) { r.target += tgt; if (w > tgt) r.over++; }
@@ -1484,6 +1538,9 @@ function newCar(o){
        las notas: si el motivo no viaja con el número, Oscar ve "+137%" en un
        sitio y la explicación en otro, y sigue sin saber a quién llamar. */
     delayWhy:{},
+    /* Parado por algo de fuera (material, piezas). No es lo mismo que el
+       taller se tarde: ese tiempo no se le cobra al técnico. */
+    espera:null,
     activeSubs:new Set(),    // subetapas activas ahora
     subMs:{},                // ms del TURNO ACTUAL por subetapa (se resetea al activar)
     subFrom:{},              // desde cuándo corre cada subetapa activa
@@ -1800,6 +1857,15 @@ function migrateSubs(c){
     }
   });
 }
+/* Etapas ya cerradas que se pasaron del tiempo. Oscar quiere que el aviso
+   NO desaparezca cuando el carro avanza: "que se quede siempre". */
+function sePasoAntes(c){
+  return (c.stageLog || []).filter(l => {
+    const t = metaEtapa(c, l.stage);
+    return t && l.work > t;
+  });
+}
+
 function stateOf(c){
   if (c.stage === "Listo") return "done";
   if (c.running) return "run";
@@ -1809,6 +1875,9 @@ function stateOf(c){
 }
 function stateLabel(c){
   const s = stateOf(c);
+  /* Si está parado esperando algo de fuera, eso es lo que hay que leer —
+     no un genérico "En pausa" que no dice por qué. */
+  if (c.espera && s === "pause") return c.espera;
   if (s === "run") return "En trabajo";
   if (s === "pause") return c.overnight ? "Taller cerrado" : "En pausa";
   if (s === "done") return "Listo";
@@ -2084,6 +2153,18 @@ function endDay(){
 /* A las 8:15 el taller abre y los cronómetros vuelven solos. */
 const SHOP_OPEN_H = SHOP.hours.openH, SHOP_OPEN_M = SHOP.hours.openM;
 let lastResumeDay = null;
+/* ¿El taller está abierto ahora mismo? Sábado hasta las 12, domingo cerrado. */
+function tallerAbierto(now){
+  const dia = now.getDay();                       // 0 domingo, 6 sábado
+  if (dia === 0) return false;
+  const min = now.getHours()*60 + now.getMinutes();
+  const abre = SHOP.hours.openH*60 + SHOP.hours.openM;
+  const cierra = dia === 6
+    ? SHOP.hours.satCloseH*60 + SHOP.hours.satCloseM
+    : SHOP.hours.closeH*60 + SHOP.hours.closeM;
+  return min >= abre && min < cierra;
+}
+
 function autoResume(){
   const now = new Date();
   const key = now.toDateString();
@@ -2096,13 +2177,19 @@ function autoResume(){
   const cierra = SHOP.hours.closeH*60 + SHOP.hours.closeM;
   /* El taller cierra solo. Si nadie pulsó "Se acabó el día", a la hora de
      cerrar se paran los cronómetros igual: la noche no es trabajo de nadie. */
-  if (min >= cierra && diaCerrado !== key) {
+  const abierto = tallerAbierto(now);
+  if (!abierto && diaCerrado !== key) {
     const n = endDay();
-    if (n) { paint(); toast(`El taller cerró · <b>${n}</b> cronómetro(s) pausados`); }
+    if (n) {
+      paint();
+      toast(now.getDay() === 6 || now.getDay() === 0
+        ? `Fin de semana · <b>${n}</b> cronómetro(s) pausados hasta el lunes 8:15 a. m.`
+        : `El taller cerró · <b>${n}</b> cronómetro(s) pausados`);
+    }
     return;
   }
   if (diaCerrado === key) return;   // el día ya se cerró: no se reanuda hoy
-  if (min >= abre && min < cierra) {
+  if (abierto) {
     lastResumeDay = key;
     let n = 0;
     cars.forEach(c => {
@@ -2204,7 +2291,9 @@ function cardHtml(c){
   const own  = st === "run" ? "is-run" : st === "free" ? "is-free"
              : st === "pause" ? "is-pause" : st === "done" ? "is-done" : "";
   const late = (dueParts(c).late && c.stage !== "Listo") ? " is-late" : "";
-  const cls  = (own + late).trim();
+  /* Parado por algo de fuera manda sobre "pausado": es la razón, no el estado. */
+  const esperando = (c.espera && stateOf(c) === "pause") ? " is-espera" : "";
+  const cls  = (own + late + esperando).trim();
   const subs = [...c.activeSubs];
   const done = st === "done";
   return `<div class="card ${cls} ${selected===c.id?"sel":""}" data-id="${c.id}">
@@ -2214,7 +2303,7 @@ function cardHtml(c){
     <div class="cap">${esc(relojVivo(c).cap)}</div>
     ${(() => {
       if (done || st === "free") return "";
-      const tg = STAGE_TARGET[c.stage];
+      const tg = metaEtapa(c, c.stage);
       if (!tg) return "";
       const v = variance(stageMs(c), tg);
       if (!v) return "";
@@ -2222,7 +2311,17 @@ function cardHtml(c){
         ? `${short(v.over)} de más · debía durar ${short(tg)}`
         : `en tiempo · debía durar ${short(tg)}`}</div>`;
     })()}
-    ${c.changes.length ? `<div class="chips"><span class="chg">Servicio cambiado</span></div>` : ""}
+    <div class="svcs">
+      ${c.skus.slice(0,3).map(x => `<span class="svc">${esc(x)}</span>`).join("")}
+      ${c.skus.length > 3 ? `<span class="svc mas">+${c.skus.length - 3}</span>` : ""}
+      ${c.changes.length ? `<span class="chg">Cambiado</span>` : ""}
+    </div>
+    ${(() => {
+      const antes = sePasoAntes(c);
+      if (!antes.length) return "";
+      const nombres = [...new Set(antes.map(l => l.stage))].join(", ");
+      return `<div class="paso">Se pasó del tiempo en ${esc(nombres)}</div>`;
+    })()}
     ${(() => {
       /* La última nota escrita por una persona — la de entrada o la que puso
          el técnico. Los avisos del sistema no cuentan como nota. */
@@ -2329,6 +2428,9 @@ function renderMgmt(){
     return [s, withTime.length ? Math.round(total / withTime.length) : 0, withTime.length];
   });
   bars($("avg-stages"), stageTotals, short);
+  /* Se dice contra qué se compara: sin eso, "3h 42m" no significa nada. */
+  const notaMeta = $("avg-stages");
+  if (notaMeta && !notaMeta.dataset.nota) notaMeta.dataset.nota = "1";
 
   const subTotals = {};
   cars.forEach(c => ALL_SUBS.forEach(s => { const v = subTotalMs(c,s); if (v) subTotals[s] = (subTotals[s]||0) + v; }));
@@ -2394,7 +2496,7 @@ function renderStage(c){
   const at = STAGES.indexOf(c.stage);
   $("d-stepper").innerHTML = STAGES.map((s,i) => {
     const ms = (c.stage===s) ? stageMs(c) : (c.stageMs[s]||0);
-    const tgt = STAGE_TARGET[s];
+    const tgt = metaEtapa(c, s);
     const v = variance(ms, tgt);
     const state = i < at ? "done" : i === at ? "now" : "next";
     const time = ms ? short(ms) : (i === at ? "0m" : "—");
@@ -2481,7 +2583,7 @@ function renderSubs(c){
 function open(id){
   const c = cars.find(x => x.id === id);
   if (!c) return;
-  if (selected !== id) { subsOpen = false; showAllSubs = false; $("d-more").open = false; }
+  if (selected !== id) { subsOpen = false; showAllSubs = false; }
   selected = id;
   $("wrap").classList.add("open");
   document.body.classList.add("card-open");
@@ -2562,6 +2664,22 @@ function open(id){
   if (rm) rm.textContent = c.delivered ? "Eliminar del historial" : "Eliminar vehículo";
   /* El cobro: "Listo" es esperando; cobrado es cerrado. El botón dice el
      estado y lo cambia con un toque, también después de entregado. */
+  /* Parado por algo de fuera: se marca aquí y el reloj deja de correr. */
+  const esp = $("d-esperas");
+  if (esp) {
+    esp.hidden = !!c.delivered || c.stage === "Listo";
+    esp.innerHTML = ESPERAS.map(m =>
+      `<button type="button" class="espera ${c.espera === m ? "on" : ""}" data-m="${esc(m)}">${esc(m)}</button>`
+    ).join("");
+    esp.querySelectorAll(".espera").forEach(b => b.addEventListener("click", () => {
+      const puesto = marcarEspera(c, b.dataset.m);
+      toast(puesto
+        ? `<b>${esc(c.brand)} ${esc(c.model)}</b> parado · ${esc(b.dataset.m).toLowerCase()} · el reloj se detuvo`
+        : `<b>${esc(c.brand)} ${esc(c.model)}</b> ya no está parado · dale a continuar cuando arranquen`);
+      open(c.id); paint();
+    }));
+  }
+
   const pd = $("d-paid");
   if (pd) {
     pd.hidden = !(c.stage === "Listo" || c.delivered);
@@ -2583,7 +2701,7 @@ function open(id){
   /* La caja del motivo sólo existe cuando hay retraso que explicar. */
   const wbox = $("d-whybox");
   if (wbox) {
-    const tg = STAGE_TARGET[c.stage];
+    const tg = metaEtapa(c, c.stage);
     const v = (c.stage !== "Listo" && tg) ? variance(stageMs(c), tg) : null;
     const pasado = !!(v && v.over > 0);
     wbox.hidden = !pasado;
@@ -2640,7 +2758,6 @@ function open(id){
          <span class="lg-d">${short(tCasa)}</span><span class="lg-t"></span></div>`
       + (fuera > 60000 ? `<div class="lg"><span class="lg-s" style="color:var(--muted);font-weight:400">de eso, ${short(fuera)} sin registrar en ningún cronómetro</span><span class="lg-w"></span><span class="lg-d"></span><span class="lg-t"></span></div>` : "");
   }
-  $("d-more-s").textContent = `Responsable del vehículo`;
 
   $("d-svc").innerHTML = c.skus.map(s => `<span class="tag">${esc(shortSku(s))}</span>`).join("");
   $("d-tech-v").textContent = c.tech;
@@ -2820,6 +2937,10 @@ document.addEventListener("pointerdown", e => {
 
 /* Se acabó el día: nada corre de noche. */
 $("end-day").addEventListener("click", () => {
+  /* Oscar: "si yo le doy sin querer me jode". Se pregunta antes. */
+  const corriendo = live().filter(c => c.running).length;
+  if (corriendo && !confirm(
+    `Vas a parar ${corriendo} cronómetro(s) de una vez.\n\nVuelven solos mañana a las 8:15 a. m. ¿Seguro?`)) return;
   const n = endDay();
   paint();
   toast(n ? `<b>${n}</b> cronómetro(s) pausados · vuelven solos a las 8:15 a. m.`
@@ -2886,6 +3007,23 @@ $("d-remove").addEventListener("click", () => {
         { label:"Deshacer", fn: () => { cars.splice(i, 0, c); toast(`<b>${esc(c.brand)} ${esc(c.model)}</b> vuelve al taller`); } });
   close(); paint();
 });
+
+/* Falta material / Esperando piezas: el carro está parado por algo que no
+   depende del taller. Se para el reloj y se anota el motivo, para que después
+   el retraso no se lea como que el técnico se tardó. */
+const ESPERAS = ["Falta material", "Esperando piezas"];
+function marcarEspera(c, motivo){
+  const quien = station.tech || c.claimedBy || c.tech;
+  if (c.espera === motivo) {
+    c.espera = null;
+    c.notes.push({ at:Date.now(), who:quien, stage:c.stage, text:`Ya no está parado por ${motivo.toLowerCase()}.` });
+    return false;
+  }
+  c.espera = motivo;
+  if (c.running) pause(c, false);
+  setDelayReason(c, c.stage, motivo, quien);
+  return true;
+}
 
 /* Cobrar y entregar son dos hechos distintos: el carro puede salir sin
    cobrarse (se marca como deuda) o cobrarse antes de que lo recojan. */
